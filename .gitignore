@@ -1,0 +1,35 @@
+# ── Python ──
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ── Jupyter ──
+.ipynb_checkpoints/
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── IDE ──
+.vscode/
+.idea/
+
+# ── Local config ──
+.claude/
+
+# ── Data (too large for git) ──
+../data/online_retail_II.csv
+../data/online_retail_II.csv.zip
+
+# ── btyd_analysis generated outputs ──
+btyd_analysis/*.parquet
+btyd_analysis/*.png
+btyd_analysis/*.json
+btyd_analysis/*.log
+btyd_analysis/BTYD_Library_Comparison_Report.md
+btyd_analysis/pymc_api_notes.txt
+btyd_analysis/pymc_output.log
