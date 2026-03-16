@@ -16,6 +16,7 @@ End-to-end customer analytics pipeline using the [Online Retail II](https://arch
 │   ├── 03_pymc_analysis.py            # PyMC-Marketing (MAP + MCMC)
 │   └── 04_comparison.py               # Head-to-head evaluation
 │
+├── SURVIVAL_ANALYSIS_GUIDE.md         # Glossary & definitions for readers new to survival analysis
 ├── requirements.txt
 └── .gitignore
 ```
@@ -38,16 +39,18 @@ The core notebook. Frames churn as a **survival problem** — "how long does a c
 - **One-timers excluded** from survival model training (handled via population KM curve in the scorecard)
 - **45-day churn window** validated empirically in the churn-window notebook
 - Clustering uses only behavioral features (frequency, recency, monetary, T) — no forward-looking lifetimes predictions that would leak churn status
+- **BTYD predictions excluded from features** — `p_alive`, `expected_txns_6m`, and `clv_6m` removed from survival model inputs because they directly encode churn status (circular dependency). All models use only observed behavioral features (purchase gaps, spend patterns, basket size, trends).
+- **Churned customers always flagged for winback** — the scorecard overrides model-based risk labels for customers who have already churned, ensuring they are labeled "Churned - Loss/Winback" regardless of their survival curve
 
-**Results (repeat customers only):**
+**Results (repeat customers only, no leaky features):**
 
 | Model | C-index (IPCW) | Mean TD-AUC | IBS |
 |-------|----------------|-------------|-----|
-| Random Survival Forest | 0.938 | 0.984 | 0.034 |
-| CoxNet (Elastic Net) | 0.925 | 0.986 | 0.035 |
-| Gradient Boosting | 0.922 | 0.968 | 0.118 |
-| Cox PH (lifelines) | 0.921 | 0.985 | 0.041 |
-| XGBoost AFT | 0.891 | 0.939 | 0.124 |
+| CoxNet (Elastic Net) | 0.894 | 0.970 | 0.049 |
+| Cox PH (lifelines) | 0.891 | 0.970 | 0.054 |
+| Gradient Boosting | 0.888 | 0.964 | 0.138 |
+| Random Survival Forest | 0.887 | 0.967 | 0.048 |
+| XGBoost AFT | 0.824 | 0.909 | 0.171 |
 
 ---
 
@@ -117,7 +120,11 @@ Place `online_retail_II.csv` in `../data/` relative to the project folder.
 [Online Retail II](https://archive.ics.uci.edu/dataset/502/online+retail+ii) — 1M+ transactions from a UK online retailer. After cleaning: ~780K transactions, ~5,800 customers.
 
 **Outputs** (generated, not tracked in git):
-- `../data/customer_survival_scorecard.csv` — personalized survival predictions for all customers
+- `../data/customer_survival_scorecard.csv` — personalized survival predictions for all customers, with risk labels:
+  - **Churned - Loss/Winback** — already churned, needs winback campaign
+  - **High Risk** — active but about to churn, needs immediate intervention
+  - **Medium Risk** — active with warning signs
+  - **Low Risk** — healthy active customer
 - `../data/clv_benchmark_results.csv` — CLV model comparison per customer
 - `btyd_analysis/*.parquet` — intermediate data and model results
 - `btyd_analysis/*.png` — visualizations

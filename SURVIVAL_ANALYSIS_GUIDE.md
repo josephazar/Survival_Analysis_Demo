@@ -327,17 +327,17 @@ IBS = (1 / T_max) × ∫ BS(t) dt
 
 **Why it matters:** A model can have a high C-index (good ranking) but a poor IBS (bad calibration). You want both — the model should rank customers correctly AND give accurate probability estimates.
 
-**In this project's results:**
+**In this project's results (after removing leaky features — see Section 8):**
 
 | Model | C-index (IPCW) | IBS |
 |-------|----------------|-----|
-| Random Survival Forest | 0.938 | 0.034 |
-| CoxNet | 0.925 | 0.035 |
-| Cox PH | 0.921 | 0.041 |
-| Gradient Boosting | 0.922 | 0.118 |
-| XGBoost AFT | 0.891 | 0.124 |
+| CoxNet | 0.894 | 0.049 |
+| Cox PH | 0.891 | 0.054 |
+| Gradient Boosting | 0.888 | 0.138 |
+| Random Survival Forest | 0.887 | 0.048 |
+| XGBoost AFT | 0.824 | 0.171 |
 
-RSF, CoxNet, and Cox PH have both high discrimination (C-index > 0.92) and excellent calibration (IBS < 0.05). Gradient Boosting and XGBoost AFT rank customers well but their probability estimates are less accurate.
+CoxNet, Cox PH, and RSF have both strong discrimination (C-index ~0.89) and good calibration (IBS < 0.06). Gradient Boosting and XGBoost AFT rank customers reasonably but their probability estimates are less accurate.
 
 ---
 
@@ -349,10 +349,10 @@ A trustworthy survival model should satisfy multiple criteria. No single metric 
 
 | Criterion | What to Check | This Project |
 |-----------|---------------|--------------|
-| **Discrimination** | C-index (IPCW) > 0.70 | RSF: 0.938 |
-| **Time-varying discrimination** | Mean TD-AUC > 0.80 | RSF: 0.984 |
-| **Calibration** | IBS < 0.10 | RSF: 0.034 |
-| **No data leakage** | Features use only past information; no future-looking variables | First-invoice features only for Stage 1; behavioral features for Stage 2 |
+| **Discrimination** | C-index (IPCW) > 0.70 | CoxNet: 0.894 |
+| **Time-varying discrimination** | Mean TD-AUC > 0.80 | CoxNet: 0.970 |
+| **Calibration** | IBS < 0.10 | RSF: 0.048 |
+| **No data leakage** | Features use only past information; no forward-looking variables or churn proxies | Behavioral features only — BTYD predictions (p_alive, CLV) excluded |
 | **Temporal validation** | Train on earlier data, test on later data | Strict temporal splits in both stages |
 | **Censoring handled** | Censored observations used, not dropped or mislabeled | 90-day observation window; IPCW-weighted metrics |
 | **Segment consistency** | Model works across different customer groups | Kaplan-Meier curves validated per segment |
@@ -368,17 +368,19 @@ A trustworthy survival model should satisfy multiple criteria. No single metric 
 
 4. **Features that should not exist** — Recency and frequency should not include the churn period itself. Features should only use information available at the prediction point.
 
-5. **One-timers mixed with repeat customers** — Customers with zero repeat purchases have duration=0, creating artificial mass points that distort model estimates. A two-stage approach (this project) is the correct solution.
+5. **Derived churn scores used as features** — Using outputs from a churn/alive model (e.g., `p_alive` from BG/NBD) as input to a survival model creates a circular dependency. The feature directly encodes the target. In this project, `p_alive`, `expected_txns_6m`, and `clv_6m` were initially included and inflated C-index by ~3–5 points. Removing them produced honest, lower scores that reflect genuine predictive signal from behavioral features alone.
+
+6. **One-timers mixed with repeat customers** — Customers with zero repeat purchases have duration=0, creating artificial mass points that distort model estimates. A two-stage approach (this project) is the correct solution.
 
 ### What "Good" Looks Like
 
 For customer churn survival analysis with real-world data:
 
 - **C-index 0.70–0.80:** Solid model. Customer ranking is meaningful.
-- **C-index 0.80–0.90:** Strong model. Personalized interventions based on risk scores will be effective.
-- **C-index 0.90+:** Excellent. Each customer's survival trajectory is well-estimated. (Achieved in this project after properly separating one-timers.)
+- **C-index 0.80–0.90:** Strong model. Personalized interventions based on risk scores will be effective. (This project achieves ~0.89 with honest, leak-free features.)
+- **C-index 0.90+:** Excellent — but verify there is no leakage. Scores above 0.93 on customer churn data warrant scrutiny.
 
-- **IBS < 0.05:** Calibration is excellent. Predicted probabilities can be trusted at face value.
+- **IBS < 0.05:** Calibration is excellent. Predicted probabilities can be trusted at face value. (Cox PH and RSF achieve this in this project.)
 - **IBS 0.05–0.10:** Good calibration. Probabilities are directionally correct.
 - **IBS > 0.10:** Use risk rankings (C-index) but be cautious about interpreting raw probability values.
 
@@ -401,6 +403,7 @@ For customer churn survival analysis with real-world data:
 | **CoxNet** | Cox PH with elastic net regularization (L1 + L2 penalty) to handle correlated features and perform feature selection. |
 | **Duration** | Synonym for survival time — the time from entry (first purchase) to event (churn) or censoring. |
 | **Event Indicator** | Binary variable: 1 if the event (churn) was observed, 0 if censored. |
+| **Feature Leakage** | When a model input encodes information about the target variable, inflating apparent performance. Example: using `p_alive` (a churn probability estimate) as a feature to predict churn is circular — the model appears accurate but has not learned anything actionable. |
 | **Gamma-Gamma Model** | A probabilistic model for predicting the monetary value of future transactions, conditional on the customer being alive. |
 | **Gradient Boosting Survival** | An ensemble method that sequentially builds weak models to correct previous errors, adapted for censored survival outcomes. |
 | **Hazard Function h(t)** | The instantaneous rate of the event occurring at time t, conditional on surviving to time t. Higher hazard = higher immediate risk. |
