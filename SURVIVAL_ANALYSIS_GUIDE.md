@@ -124,17 +124,39 @@ Unlike standard ML where `y` is a single column, survival analysis requires two 
 
 | Column | Name | Meaning |
 |--------|------|---------|
-| `duration` | Survival time | Days from first purchase to churn (or last known active date) |
+| `duration` | Survival time | Time from a reference point until the event (or until censoring) |
 | `event` | Event indicator | 1 = churned (event observed), 0 = censored (still active or data ended) |
 
-**Examples from this project:**
+### Watch-out — event and censoring times for inactivity-based churn
 
-| Customer | Duration | Event | Interpretation |
-|----------|----------|-------|----------------|
-| C-12345 | 180 days | 1 | Churned after 180 days |
-| C-67890 | 400 days | 0 | Still active at day 400 (censored) |
-| C-11111 | 45 days | 1 | Churned quickly (early churner) |
-| C-99999 | 15 days | 0 | Only 15 days of data — too early to tell (censored) |
+If the event is defined as **"inactive for more than `W` days"**, the natural intuition ("duration = last_purchase − first_purchase") is **wrong** on both sides:
+
+| Customer type | Wrong definition | Correct definition |
+|---|---|---|
+| Churner | `duration = last_purchase − first_purchase` | `duration = last_purchase + W − first_purchase` (event is declared when inactivity *crosses* W) |
+| Censored (still active at end) | `duration = last_purchase − first_purchase` | `duration = study_end − first_purchase` (censored at the last time we could have observed the event) |
+
+The wrong version under-credits both groups — churners "survived" longer than you admit (until the window was crossed), active customers "survived" to the study end, not just to their most recent basket. Everything downstream — Kaplan-Meier, Cox, AFT — is shifted by up to `W` days.
+
+See [LESSONS_LEARNED.md §2](LESSONS_LEARNED.md#2-event-time-and-censoring--the-most-common-conceptual-error) for a deeper discussion and the specific bug that prompted this callout.
+
+### Landmark design — clean features, clean time axis
+
+Rather than measuring duration from each customer's own first purchase, many professional pipelines pick a **fixed calendar landmark `t0`** in the past (e.g. DAY 500 of a 711-day panel, or `2011-06-01` for Online Retail II) and:
+
+- Keep only customers **alive at `t0`** (had a purchase in `(t0 − W, t0]`, with `>=` on the lower bound).
+- Build features from data **on or before `t0`** — guaranteed no leakage from the prediction window.
+- Measure event time **from `t0`** — the churn event for a customer with last basket `L` is declared at `L + W`, giving `event_time = L + W − t0`; for censored customers it is `study_end − t0`.
+
+A big win of this formulation: the survival-function outputs `S(Δ)` are automatically **conditional on "alive at `t0`"**, which is exactly what a scorecard needs ("given this customer is still active today, what's the probability they're still active in 30 days?").
+
+**Examples from this project (Dunnhumby, landmark `t0` = DAY 500, `W` = 14d):**
+
+| Household | `last_overall` | Event | `event_time` (days from t0) | Interpretation |
+|---|---|---|---|---|
+| H-0001 | DAY 600 | 1 | `600 + 14 − 500 = 114` | Churned mid-way through follow-up |
+| H-0002 | DAY 705 | 0 | `711 − 500 = 211` | Still active at study end (censored) |
+| H-0003 | DAY 495 | 1 | `495 + 14 − 500 = 9` | Churned almost immediately after `t0` |
 
 ### What the Model Outputs
 
@@ -327,17 +349,26 @@ IBS = (1 / T_max) × ∫ BS(t) dt
 
 **Why it matters:** A model can have a high C-index (good ranking) but a poor IBS (bad calibration). You want both — the model should rank customers correctly AND give accurate probability estimates.
 
-**In this project's results (after removing leaky features — see Section 8):**
+**In this project's results — Online Retail II, landmark design (after fixing event-time misalignment and retrospective features — see Section 8):**
 
-| Model | C-index (IPCW) | IBS |
-|-------|----------------|-----|
-| CoxNet | 0.894 | 0.049 |
-| Cox PH | 0.891 | 0.054 |
-| Gradient Boosting | 0.888 | 0.138 |
-| Random Survival Forest | 0.887 | 0.048 |
-| XGBoost AFT | 0.824 | 0.171 |
+| Model | C-index (IPCW) | Mean TD-AUC | IBS |
+|-------|----------------|-------------|-----|
+| RSF | 0.758 | 0.822 | 0.132 |
+| CoxPH | 0.750 | 0.814 | 0.137 |
+| GBSA | 0.747 | 0.808 | 0.137 |
+| CoxNet | 0.746 | 0.811 | 0.139 |
 
-CoxNet, Cox PH, and RSF have both strong discrimination (C-index ~0.89) and good calibration (IBS < 0.06). Gradient Boosting and XGBoost AFT rank customers reasonably but their probability estimates are less accurate.
+**Dunnhumby grocery panel — landmark design, 14-day churn window:**
+
+| Model | C-index (IPCW) | Mean TD-AUC | IBS |
+|-------|----------------|-------------|-----|
+| CoxPH | 0.738 | 0.769 | 0.041 |
+| CoxNet | 0.733 | 0.771 | 0.043 |
+| RSF | 0.725 | 0.755 | 0.040 |
+| GBSA | 0.721 | 0.745 | 0.044 |
+| XGBoost AFT | 0.728 | 0.762 | 0.060 |
+
+Both datasets converge on C-indices in the **0.72–0.76** range for honest landmark evaluations. Earlier reports of 0.89–0.99 on these datasets reflected either retrospective features (Online Retail II) or direct target leakage (Dunnhumby's `recency_ratio = duration / T_days`). The lower numbers are the right numbers.
 
 ---
 
@@ -349,38 +380,49 @@ A trustworthy survival model should satisfy multiple criteria. No single metric 
 
 | Criterion | What to Check | This Project |
 |-----------|---------------|--------------|
-| **Discrimination** | C-index (IPCW) > 0.70 | CoxNet: 0.894 |
-| **Time-varying discrimination** | Mean TD-AUC > 0.80 | CoxNet: 0.970 |
-| **Calibration** | IBS < 0.10 | RSF: 0.048 |
-| **No data leakage** | Features use only past information; no forward-looking variables or churn proxies | Behavioral features only — BTYD predictions (p_alive, CLV) excluded |
-| **Temporal validation** | Train on earlier data, test on later data | Strict temporal splits in both stages |
-| **Censoring handled** | Censored observations used, not dropped or mislabeled | 90-day observation window; IPCW-weighted metrics |
-| **Segment consistency** | Model works across different customer groups | Kaplan-Meier curves validated per segment |
-| **Predictions are monotonic** | Higher predicted risk corresponds to shorter actual survival | Verified in scorecard analysis |
+| **Discrimination** | C-index (IPCW) > 0.70 | CoxPH (Dunnhumby landmark): 0.738; RSF (Online Retail landmark): 0.758 |
+| **Time-varying discrimination** | Mean TD-AUC > 0.75 | 0.77 – 0.82 across both projects |
+| **Calibration** | IBS < 0.10 for landmark models | Dunnhumby: 0.04; Online Retail: 0.13 (higher because the follow-up window is longer) |
+| **No feature leakage** | Every numeric feature has `\|corr\|` < 0.7 with the event and event-time targets | Automated assertion in `dunnhumby/tests/test_leakage_and_smoke.py` |
+| **Landmark design** | Features built strictly pre-`t0`, event time measured from `t0` forward | Both pipelines |
+| **Proper event time** | `event_time = last + W − first` or `(last + W) − t0`; censoring at study end | Both pipelines; asserted in smoke tests |
+| **Pairwise-disjoint splits** | train ∩ val = val ∩ test = train ∩ test = ∅ | Asserted in `test_clv_split_disjoint` |
+| **No test peek** | Early stopping / hyper-tuning uses validation, not test | Stage-1, Stage-5, Stage-6, Stage-7 all use val folds |
+| **Censoring handled** | Censored observations used, not dropped or mislabeled | IPCW-weighted metrics |
+| **Predictions monotone** | `S(t)` non-increasing per customer | Asserted |
+| **Scorecard coverage** | Every scored customer has an S(Δ) with explicit provenance | 100% coverage; `s_source` column (`cox_landmark` / `km_baseline`) |
 
 ### Red Flags to Watch For
 
-1. **C-index near 1.0 on test data** — Suspiciously perfect. Likely data leakage (features that encode the outcome).
+1. **C-index > 0.9 on customer churn data** — Suspiciously high. On this project, 0.993 was the result of a single feature (`recency_ratio = duration / T_days`) that embedded the survival target in the numerator. Audit every feature's correlation with the label before celebrating.
 
-2. **High C-index but high IBS** — Model ranks well but probabilities are miscalibrated. Risky if you are using the probabilities for decisions (e.g., "target customers with S(90) < 0.30").
+2. **Features anchored to the study end** — `spend_last_90d`, `freq_trend`, `days_since_last_at_end_of_data` etc. all implicitly encode whether the customer stopped shopping. Anchor these to a **landmark** instead.
 
-3. **Large gap between train and test performance** — Overfitting. The model memorized training patterns that do not generalize.
+3. **Event time = `last_purchase − first_purchase`** — If the event is "inactive > W days", the event time for churners should be `last_purchase + W − first_purchase`, not `last_purchase − first_purchase`. For censored customers it should be `study_end − first_purchase`. See Section 4.
 
-4. **Features that should not exist** — Recency and frequency should not include the churn period itself. Features should only use information available at the prediction point.
+4. **High C-index but high IBS** — Model ranks well but probabilities are miscalibrated. Risky if you are using the probabilities for decisions.
 
-5. **Derived churn scores used as features** — Using outputs from a churn/alive model (e.g., `p_alive` from BG/NBD) as input to a survival model creates a circular dependency. The feature directly encodes the target. In this project, `p_alive`, `expected_txns_6m`, and `clv_6m` were initially included and inflated C-index by ~3–5 points. Removing them produced honest, lower scores that reflect genuine predictive signal from behavioral features alone.
+5. **Large gap between train and test performance** — Overfitting. The model memorized training patterns that do not generalize.
 
-6. **One-timers mixed with repeat customers** — Customers with zero repeat purchases have duration=0, creating artificial mass points that distort model estimates. A two-stage approach (this project) is the correct solution.
+6. **BTYD scores (`p_alive`, `clv_6m`) used as survival features** — Circular: the feature directly estimates the target. Use BTYD as a CLV *benchmark* and as a scorecard *fallback*, not as a survival covariate.
+
+7. **One-timers mixed with repeat customers** — Customers with zero repeat purchases have duration=0, creating artificial mass points that distort model estimates. Use a two-stage architecture or restrict the survival model to repeat customers.
+
+8. **Test set used for early stopping** — `xgb.fit(..., eval_set=[(X_test, y_test)], early_stopping_rounds=30)` quietly selects `num_rounds` based on test performance. Carve a validation slice from train instead.
+
+9. **Unconditional `S(Δ)` presented as forward risk** — `S(30)` from a model where time origin is "first purchase" is the probability of surviving the first 30 days of a customer's lifetime, not the probability of surviving the next 30 days from today. Use a landmark model so `S(Δ)` is automatically conditional on "alive at landmark".
+
+10. **Scorecard columns with silent `NaN`** — If your contract says every customer gets an `S_30d`, then every customer needs an `S_30d`. Use a population KM baseline to fill in out-of-cohort customers, and track provenance.
 
 ### What "Good" Looks Like
 
 For customer churn survival analysis with real-world data:
 
-- **C-index 0.70–0.80:** Solid model. Customer ranking is meaningful.
-- **C-index 0.80–0.90:** Strong model. Personalized interventions based on risk scores will be effective. (This project achieves ~0.89 with honest, leak-free features.)
-- **C-index 0.90+:** Excellent — but verify there is no leakage. Scores above 0.93 on customer churn data warrant scrutiny.
+- **C-index 0.70–0.80:** Solid model. Customer ranking is meaningful. This project's landmark designs land here (0.72–0.76 across both datasets).
+- **C-index 0.80–0.90:** Strong model. Personalized interventions based on risk scores will be effective. Plausible on contractual / subscription data where the signal is cleaner.
+- **C-index 0.90+:** On inactivity-based retail churn data, treat as a red flag until you have audited every feature. This project initially saw 0.99 and it was feature leakage.
 
-- **IBS < 0.05:** Calibration is excellent. Predicted probabilities can be trusted at face value. (Cox PH and RSF achieve this in this project.)
+- **IBS < 0.05:** Calibration is excellent. Predicted probabilities can be trusted at face value.
 - **IBS 0.05–0.10:** Good calibration. Probabilities are directionally correct.
 - **IBS > 0.10:** Use risk rankings (C-index) but be cautious about interpreting raw probability values.
 

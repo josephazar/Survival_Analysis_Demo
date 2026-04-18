@@ -18,12 +18,36 @@ Thumbs.db
 .vscode/
 .idea/
 
-# ── Local config ──
+# ── AI assistants / agent scratch / caches ──
 .claude/
+.claude*
+.cursor/
+.codeium/
+.aider*
+.openai/
+.anthropic/
+CLAUDE.md
+.github/copilot/
+.ccd/
+.agent/
+.cache/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+
+# ── Review / planning docs (kept locally, not tracked) ──
+REVIEW_RESPONSE.md
+DUNNHUMBY_PLAN.md
+Dunnhumby_Survival_Analysis_Plan.md
+dunnhumby/DUNNHUMBY_PLAN.md
 
 # ── Data (too large for git) ──
 ../data/online_retail_II.csv
 ../data/online_retail_II.csv.zip
+dunnhumby/processed/
+dunnhumby/artifacts/
+scripts/artifacts/
 
 # ── btyd_analysis generated outputs ──
 btyd_analysis/*.parquet

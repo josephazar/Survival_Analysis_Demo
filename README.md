@@ -1,105 +1,48 @@
 # Customer Churn Survival Analysis & CLV Prediction
 
-End-to-end customer analytics pipeline using the [Online Retail II](https://archive.ics.uci.edu/dataset/502/online+retail+ii) dataset (~5,800 customers, Dec 2009 – Dec 2011). Covers churn definition, survival modeling, CLV prediction, and BTYD library comparison.
+End-to-end customer analytics across two retail panels:
 
-## Project Structure
+- **Online Retail II** — UK e-commerce, Dec 2009 – Dec 2011, ~5,800 customers.
+- **Dunnhumby "The Complete Journey"** — US grocery, 2 years, 2,500 households, ~2.6M transactions.
+
+Covers empirical churn-window selection, survival modelling (landmark design), CLV prediction (ML vs BTYD), and a BTYD library comparison (Lifetimes vs PyMC-Marketing).
+
+> **New to survival analysis or this repo?** Start with [`LESSONS_LEARNED.md`](LESSONS_LEARNED.md) — a short, practical checklist of the mistakes caught in two rounds of code review. Saves you from repeating them.
+
+---
+
+## Project structure
 
 ```
-├── customer-survival-analysis.ipynb   # Main survival analysis (7 parts)
-├── clv-prediction-benchmark.ipynb     # ML vs probabilistic CLV comparison
-├── churn-window-analysis.ipynb        # Empirical churn window selection
-├── stage1-conversion-model.ipynb      # First-purchase conversion classifier
+├── scripts/                          # Online Retail Python pipeline (authoritative)
+│   ├── 01_survival.py                # Landmark survival on the alive-at-t0 cohort
+│   ├── 02_stage1.py                  # First-invoice conversion classifier (val-based XGB)
+│   ├── 03_scorecard.py               # Full-coverage scorecard (Cox + KM baseline)
+│   ├── patch_notebooks.py            # Adds banners + patches stage-1 cell in notebooks
+│   ├── artifacts/                    # Generated metrics / plots / predictions
+│   └── README.md
 │
-├── btyd_analysis/                     # BTYD library comparison pipeline
-│   ├── 01_data_prep.py                # Cleaning & RFM aggregation
-│   ├── 02_lifetimes_analysis.py       # Lifetimes BG/NBD + Gamma-Gamma
-│   ├── 03_pymc_analysis.py            # PyMC-Marketing (MAP + MCMC)
-│   └── 04_comparison.py               # Head-to-head evaluation
+├── customer-survival-analysis.ipynb  # Original exploratory notebook (+ methodology banner)
+├── clv-prediction-benchmark.ipynb    # ML vs BTYD — clean in review, unchanged
+├── churn-window-analysis.ipynb       # Kneedle elbow for the churn window
+├── stage1-conversion-model.ipynb     # Original conversion model (+ banner, cell 15 patched)
 │
-├── SURVIVAL_ANALYSIS_GUIDE.md         # Glossary & definitions for readers new to survival analysis
+├── btyd_analysis/                    # BTYD library comparison (Lifetimes vs PyMC-Marketing)
+│   ├── 01_data_prep.py
+│   ├── 02_lifetimes_analysis.py
+│   ├── 03_pymc_analysis.py
+│   └── 04_comparison.py
+│
+├── dunnhumby/                        # Dunnhumby pipeline (see dunnhumby/README.md)
+│   ├── scripts/                      # 9 stages, landmark-based
+│   ├── tests/test_leakage_and_smoke.py   # 18 regression assertions
+│   └── 00_EDA_and_Business_Problem.ipynb # Pedagogical front door
+│
+├── LESSONS_LEARNED.md                # Practical do-not-repeat checklist
+├── SURVIVAL_ANALYSIS_GUIDE.md        # Glossary for readers new to survival analysis
 ├── requirements.txt
 └── .gitignore
 ```
-
-## Notebooks
-
-### 1. Customer Survival Analysis (`customer-survival-analysis.ipynb`)
-
-The core notebook. Frames churn as a **survival problem** — "how long does a customer stay active?" rather than binary yes/no.
-
-**Pipeline:**
-- RFM summary + BG/NBD & Gamma-Gamma (lifetimes)
-- PCA + K-Means segmentation (Gold / Silver / Bronze) using behavioral features only
-- Kaplan-Meier survival curves per segment
-- **5 survival models**: Cox PH, CoxNet (elastic net), Random Survival Forest, Gradient Boosting Survival, XGBoost AFT
-- Comprehensive evaluation: IPCW C-index, time-dependent AUC, Brier score, IBS
-- Customer Survival Scorecard with personalized S(t) predictions
-
-**Key design decisions:**
-- **One-timers excluded** from survival model training (handled via population KM curve in the scorecard)
-- **45-day churn window** validated empirically in the churn-window notebook
-- Clustering uses only behavioral features (frequency, recency, monetary, T) — no forward-looking lifetimes predictions that would leak churn status
-- **BTYD predictions excluded from features** — `p_alive`, `expected_txns_6m`, and `clv_6m` removed from survival model inputs because they directly encode churn status (circular dependency). All models use only observed behavioral features (purchase gaps, spend patterns, basket size, trends).
-- **Churned customers always flagged for winback** — the scorecard overrides model-based risk labels for customers who have already churned, ensuring they are labeled "Churned - Loss/Winback" regardless of their survival curve
-
-**Results (repeat customers only, no leaky features):**
-
-| Model | C-index (IPCW) | Mean TD-AUC | IBS |
-|-------|----------------|-------------|-----|
-| CoxNet (Elastic Net) | 0.894 | 0.970 | 0.049 |
-| Cox PH (lifelines) | 0.891 | 0.970 | 0.054 |
-| Gradient Boosting | 0.888 | 0.964 | 0.138 |
-| Random Survival Forest | 0.887 | 0.967 | 0.048 |
-| XGBoost AFT | 0.824 | 0.909 | 0.171 |
-
----
-
-### 2. CLV Prediction Benchmark (`clv-prediction-benchmark.ipynb`)
-
-Compares ML models against probabilistic BTYD models for 6-month CLV prediction using a temporal train/test split.
-
-**Models compared:** Linear Regression, Random Forest, XGBoost vs Lifetimes (BG/NBD + Gamma-Gamma), PyMC-Marketing
-
-**Key finding:** Lifetimes wins with MAE £494 vs XGBoost £553 — probabilistic models outperform ML with fair out-of-sample evaluation (cross_val_predict). Lifetimes also better detects churned customers (predicts £0 revenue).
-
----
-
-### 3. Churn Window Analysis (`churn-window-analysis.ipynb`)
-
-Empirically determines the optimal inactivity threshold for defining churn by analyzing the inter-purchase gap distribution.
-
-**Method:** CDF of 30,918 inter-purchase gaps → elbow detection (Kneedle algorithm + max curvature) → cross-window validation at 30/40/45/50/60 days.
-
-**Result:** Elbow at 43 days (captures 66% of returns). Label stability peaks at 45→50 days (98.4% agreement). Validates the **45-day churn window** used throughout the project.
-
----
-
-### 4. Stage 1: Conversion Model (`stage1-conversion-model.ipynb`)
-
-Binary classifier predicting whether a first-time buyer will ever return, using **only first-invoice features** (zero future leakage).
-
-**Design:**
-- 90-day observation window with censoring-aware labels (customers without enough observation time excluded)
-- Temporal train/test split (train on earlier cohorts, test on later)
-- 25 features: monetary, basket composition, temporal, geographic, product keywords
-
-**Results:** XGBoost AUC-ROC = 0.62 — modest but honest signal from a single purchase. This model feeds into a two-stage framework: Stage 1 predicts conversion, Stage 2 (survival notebook) predicts churn timing for repeat customers.
-
----
-
-## BTYD Library Comparison (`btyd_analysis/`)
-
-Four-script pipeline comparing **lifetimes** vs **PyMC-Marketing** for BG/NBD + Gamma-Gamma modeling.
-
-Run sequentially:
-```bash
-python btyd_analysis/01_data_prep.py
-python btyd_analysis/02_lifetimes_analysis.py
-python btyd_analysis/03_pymc_analysis.py
-python btyd_analysis/04_comparison.py
-```
-
-**Finding:** Near-identical results (CLV correlation r=0.999, top-50 customer overlap 96%). Lifetimes is faster (0.06s vs 7.7s), PyMC provides posterior uncertainty.
 
 ---
 
@@ -109,22 +52,126 @@ python btyd_analysis/04_comparison.py
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+
+# Additional for the Dunnhumby pipeline
+pip install kneed shap
 ```
 
-Place `online_retail_II.csv` in `../data/` relative to the project folder.
+Place `online_retail_II.csv` and the Dunnhumby CSVs in `../data/` relative to this folder.
+
+---
+
+## Quick start
+
+### Online Retail II pipeline
+
+```bash
+source venv/bin/activate
+cd scripts
+python 01_survival.py
+python 02_stage1.py
+python 03_scorecard.py
+python patch_notebooks.py      # One-shot: updates notebooks with banners + stage-1 cell fix
+```
+
+Metrics land in `scripts/artifacts/`. Full per-customer scorecard at `scripts/artifacts/online_retail_scorecard.csv`.
+
+### Dunnhumby pipeline
+
+```bash
+source venv/bin/activate
+cd dunnhumby/scripts
+for s in 00_data_prep 01_eda 02_churn_window_analysis 03_feature_engineering \
+         04_btyd_benchmark 05_early_dropout_model 06_customer_survival_analysis \
+         07_clv_prediction_benchmark 08_household_scorecard; do
+  python $s.py
+done
+cd .. && python tests/test_leakage_and_smoke.py     # expects 18/18 passing
+```
+
+Final scorecard at `../data/household_survival_scorecard.csv`.
+
+---
+
+## The notebooks (Online Retail)
+
+### `customer-survival-analysis.ipynb`
+
+Original survival exploration — PCA+K-Means segmentation, Kaplan-Meier per tier, five survival models, scorecard. Retained for historical context. A banner at the top points to the authoritative `scripts/` pipeline, which fixes three issues caught in review:
+
+1. Event/censoring time misalignment (should be `last + window` for churners, `study_end` for censored).
+2. Retrospective features with random split (should be landmark + held-out test).
+3. Scorecard `S(30d/60d/90d)` were unconditional from first purchase, not conditional forward-from-now.
+
+### `clv-prediction-benchmark.ipynb`
+
+Compares ML (Linear / RF / XGBoost) against probabilistic BTYD for 6-month CLV. Clean in review: real temporal cutoff, train-only feature building, BTYD fit on training only, `cross_val_predict` for ML. **Lifetimes wins** (MAE £494 vs XGBoost £553).
+
+### `churn-window-analysis.ipynb`
+
+Kneedle elbow on the inter-purchase gap CDF → 43 days → validates a **45-day** churn window for Online Retail. The same methodology applied to Dunnhumby yields **14 days**; see [`dunnhumby/scripts/02_churn_window_analysis.py`](dunnhumby/scripts/02_churn_window_analysis.py).
+
+### `stage1-conversion-model.ipynb`
+
+First-invoice → will-they-return binary classifier. 25 features, temporal split. Original XGBoost AUC 0.62. The stage-1 XGBoost cell (cell 15) has been patched in place to early-stop on a validation fold rather than the test fold (run `scripts/patch_notebooks.py` to apply).
+
+### `btyd_analysis/` (Lifetimes vs PyMC-Marketing)
+
+Four-script head-to-head BG/NBD + Gamma-Gamma comparison. Near-identical results: CLV correlation r=0.999, top-50 customer overlap 96%. Lifetimes is ~130× faster; PyMC provides posterior uncertainty.
+
+---
+
+## The Dunnhumby pipeline (`dunnhumby/`)
+
+Nine-stage landmark pipeline with its own [`README.md`](dunnhumby/README.md). Headline numbers (grocery panel is much denser, so features and thresholds differ):
+
+| Metric | Value |
+|---|---|
+| Churn window (Kneedle) | **14 days** (vs 45 for Online Retail) |
+| Landmark | DAY 500 (211-day follow-up) |
+| Alive-at-landmark cohort | 1,794 / 2,500 households |
+| Best survival C-index (test) | **0.738** (CoxPH) |
+| Stage-5 early-dropout classifier AUC | **0.742** (LogReg) |
+| CLV best model (180d horizon) | **Linear Regression** — MAE $339 (ML beats BTYD here, the opposite of Online Retail) |
+| Leakage + smoke tests | **18 / 18** pass |
+
+The Dunnhumby work sits in its own folder because the dataset is richer (campaigns, coupons, demographics, product hierarchy) and the modelling decisions diverge from Online Retail at several points. See [`dunnhumby/00_EDA_and_Business_Problem.ipynb`](dunnhumby/00_EDA_and_Business_Problem.ipynb) for a narrative walkthrough.
+
+---
+
+## Before you start modifying code
+
+1. **Read [`LESSONS_LEARNED.md`](LESSONS_LEARNED.md).** It lists the specific traps this repo has already fallen into. Five minutes now saves a day later.
+2. **Read [`SURVIVAL_ANALYSIS_GUIDE.md`](SURVIVAL_ANALYSIS_GUIDE.md)** if you haven't worked with survival models before.
+3. **Run the Dunnhumby smoke tests (`dunnhumby/tests/test_leakage_and_smoke.py`) before and after your change.** They assert 18 invariants (no leakage, monotone survival, disjoint splits, correct event-time formulas). If you break one, the test name tells you what contract you violated.
+4. **Don't re-introduce `duration = last - first` or `recency_ratio = duration / T`.** Both were real bugs that inflated metrics by ~0.25 C-index points.
+
+---
+
+## Output artefacts
+
+**Generated, gitignored:**
+
+- `scripts/artifacts/online_retail_scorecard.csv` — full 5,878-customer scorecard with `s_source` provenance column
+- `scripts/artifacts/online_retail_survival_metrics.json` — test metrics for all survival models
+- `scripts/artifacts/online_retail_stage1_*` — stage-1 metrics and predictions
+- `dunnhumby/processed/*.parquet` — canonical Dunnhumby intermediates
+- `dunnhumby/artifacts/<stage>/` — per-stage plots and metrics.json
+- `../data/household_survival_scorecard.csv` — final Dunnhumby scorecard (2,500 × 34)
+- `../data/customer_survival_scorecard.csv` — final Online Retail scorecard (generated by the notebook)
+- `../data/clv_benchmark_results.csv` — CLV comparison per customer
+- `btyd_analysis/*.parquet` / `*.png` — BTYD comparison artefacts
+
+**Risk labels** used consistently across both projects:
+
+- **Churned - Loss/Winback** — already inactive > `CHURN_WINDOW` at observation end
+- **High Risk** — active but low survival probability
+- **Medium Risk** — active with warning signs
+- **Low Risk** — healthy active customer
 
 ---
 
 ## Data
 
-[Online Retail II](https://archive.ics.uci.edu/dataset/502/online+retail+ii) — 1M+ transactions from a UK online retailer. After cleaning: ~780K transactions, ~5,800 customers.
-
-**Outputs** (generated, not tracked in git):
-- `../data/customer_survival_scorecard.csv` — personalized survival predictions for all customers, with risk labels:
-  - **Churned - Loss/Winback** — already churned, needs winback campaign
-  - **High Risk** — active but about to churn, needs immediate intervention
-  - **Medium Risk** — active with warning signs
-  - **Low Risk** — healthy active customer
-- `../data/clv_benchmark_results.csv` — CLV model comparison per customer
-- `btyd_analysis/*.parquet` — intermediate data and model results
-- `btyd_analysis/*.png` — visualizations
+- [Online Retail II](https://archive.ics.uci.edu/dataset/502/online+retail+ii) — 1M+ transactions from a UK online retailer. After cleaning: ~780K transactions, ~5,800 customers.
+- [Dunnhumby "The Complete Journey"](https://www.dunnhumby.com/source-files/) — 2-year panel of 2,500 US households, ~2.6M transactions, 92K products, 801 households with demographics, 30 campaigns.
