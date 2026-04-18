@@ -5,7 +5,7 @@ Landmark-based survival modeling on the
 
 **Start here if you're new:** [00_EDA_and_Business_Problem.ipynb](00_EDA_and_Business_Problem.ipynb) walks through the business problem, dataset, and plan of attack with embedded EDA plots.
 
-**For the full design and v1 → v2 fix log**, see [DUNNHUMBY_PLAN.md](DUNNHUMBY_PLAN.md).
+**Before writing a single feature**, read [`../LESSONS_LEARNED.md`](../LESSONS_LEARNED.md) — a practical checklist of the methodology traps this pipeline was built to avoid.
 
 ## Quick start
 

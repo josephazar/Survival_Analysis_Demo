@@ -50,7 +50,7 @@ This notebook is the front door to the Dunnhumby survival-analysis pipeline. It 
 3. **The empirical landscape** — what an EDA of 2.6M transactions reveals about how households shop.
 4. **The plan of attack** — the nine-stage pipeline, where it lives in the repo, and why it is structured the way it is.
 
-If you just want results, skip to [DUNNHUMBY_PLAN.md](DUNNHUMBY_PLAN.md). If you want to understand *why* the pipeline looks the way it does, read on.""")
+If you just want the headline numbers, skip to [README.md](README.md). If you want to understand *why* the pipeline looks the way it does — and which methodology traps were dodged on the way — read on; then see [`../LESSONS_LEARNED.md`](../LESSONS_LEARNED.md).""")
 
 
 md("""## 1. The business problem
@@ -425,7 +425,7 @@ Or dive into the specific stages:
 - [`06_customer_survival_analysis.py`](scripts/06_customer_survival_analysis.py) — the five survival models side by side. Good place to start if you've used survival tools before.
 - [`tests/test_leakage_and_smoke.py`](tests/test_leakage_and_smoke.py) — the 14 invariants the pipeline maintains. If you change any upstream logic, these should still pass.
 
-For the full v1 → v2 fix log (why this pipeline looks the way it does), see [`DUNNHUMBY_PLAN.md`](DUNNHUMBY_PLAN.md).""")
+For the methodology checklist this pipeline was built against — feature leakage traps, event-time alignment, conditional survival in the scorecard, and the rest — see [`../LESSONS_LEARNED.md`](../LESSONS_LEARNED.md).""")
 
 
 # ---------------------------------------------------------------
