@@ -23,7 +23,6 @@ from nbformat.v4 import new_code_cell, new_markdown_cell, new_notebook
 
 ROOT = Path(__file__).resolve().parent
 OUT_PATH = ROOT / "00_EDA_and_Business_Problem.ipynb"
-VENV_PYTHON = ROOT.parent / "venv" / "bin" / "python"
 
 
 # ----------------------------------------------------------------------
@@ -116,7 +115,7 @@ plt.rcParams['figure.figsize'] = (9, 4.5)
 from pathlib import Path
 DATA = Path('../../data/dunnhumby')
 assert DATA.exists(), f'Data folder not found at {DATA}'
-print('Data folder:', DATA.resolve())""")
+print('Data folder found (expected at ../../data/dunnhumby relative to this notebook)')""")
 
 
 code("""# Lightweight eyeball of each file — just shape and first 2 rows
@@ -358,7 +357,7 @@ md("""## 4. Key insights from EDA
 | Only 3 one-timer households | Original "Stage 1 conversion" task is not applicable — we reframe to an early-behaviour churn classifier |
 | Dense shopping (median 78 baskets/HH) | Survival event times are short; a 211-day follow-up window is more than enough to observe churn |
 | 13 departments with meaningful share | Department-mix and concentration features are worth building |
-| 99% of households received ≥1 campaign | Promotional responsiveness is a strong differentiating signal |
+| 63% of households received ≥1 campaign | Promotional responsiveness is a broad, differentiating signal |
 | Only 32% have demographics | Unified model with `Unknown` imputation, not a sub-model |
 | Panel is temporally stable | Safe to fit population-level BG/NBD without time weighting |""")
 
@@ -392,7 +391,7 @@ This design solves three problems at once:
 07_clv_benchmark       ─►  ML vs BTYD on a clean 450/630/711 split
 08_household_scorecard ─►  Final risk tiers + CSV export
 
-tests/test_leakage_and_smoke.py — 14 automated assertions
+tests/test_leakage_and_smoke.py — 20 automated assertions
 ```
 
 Each stage writes a parquet intermediate to `processed/` and plot/metric artifacts to `artifacts/<stage>/`.
@@ -400,7 +399,7 @@ Each stage writes a parquet intermediate to `processed/` and plot/metric artifac
 ### Expected deliverables
 
 1. **A per-household risk tier** (Low / Medium / High / Churned) on the 2,500 households.
-2. **Conditional 30/60/90/180-day survival curves** for the ~1,767 households alive at the landmark.
+2. **Conditional 30/60/90/180-day survival curves** for the 1,794 households alive at the landmark.
 3. **A CLV benchmark** comparing ML regressors against BTYD on 180-day forward spend.
 4. **A leakage-tested codebase** — every methodological claim in the README is backed by a test assertion.""")
 
@@ -423,7 +422,7 @@ Or dive into the specific stages:
 
 - [`03_feature_engineering.py`](scripts/03_feature_engineering.py) — where the landmark feature matrix is built. Worth reading line-by-line if you want to see how the `event_time` and `event_observed` targets are defined.
 - [`06_customer_survival_analysis.py`](scripts/06_customer_survival_analysis.py) — the five survival models side by side. Good place to start if you've used survival tools before.
-- [`tests/test_leakage_and_smoke.py`](tests/test_leakage_and_smoke.py) — the 14 invariants the pipeline maintains. If you change any upstream logic, these should still pass.
+- [`tests/test_leakage_and_smoke.py`](tests/test_leakage_and_smoke.py) — the 20 invariants the pipeline maintains. If you change any upstream logic, these should still pass.
 
 For the methodology checklist this pipeline was built against — feature leakage traps, event-time alignment, conditional survival in the scorecard, and the rest — see [`../LESSONS_LEARNED.md`](../LESSONS_LEARNED.md).""")
 

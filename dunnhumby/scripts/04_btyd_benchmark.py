@@ -94,6 +94,26 @@ def main():
     bgf = fit_bgnbd(rfm)
     ggf = fit_gamma_gamma(rfm)
 
+    # Gamma-Gamma precondition: frequency and monetary value must be
+    # (approximately) independent — check it rather than assume it.
+    repeat = rfm[(rfm["frequency"] > 0) & (rfm["monetary_value"] > 0)]
+    freq_monetary_corr = float(repeat[["frequency", "monetary_value"]].corr().iloc[0, 1])
+    print(f"[gamma-gamma check] corr(frequency, monetary) = {freq_monetary_corr:.3f} "
+          f"({'OK' if abs(freq_monetary_corr) < 0.1 else 'WARNING: assumption strained'})")
+
+    # BG/NBD sanity: on a dense loyal-shopper grocery panel the dropout
+    # parameter `a` can collapse toward 0, making p_alive ~1 for nearly
+    # everyone — a known BG/NBD pathology, not a data error. Flag it loudly
+    # so downstream consumers don't treat p_alive as an informative churn
+    # signal here (the scorecard's `already_churned` override does the work).
+    a_param = float(bgf.params_["a"])
+    degenerate_dropout = a_param < 0.05
+    if degenerate_dropout:
+        print(f"[bg/nbd diagnostic] dropout parameter a = {a_param:.4f} ~ 0: "
+              "the model believes households essentially never die. p_alive is "
+              "near 1 for almost everyone and should NOT be used as a churn "
+              "signal on this panel (an MBG/NBD variant would be more appropriate).")
+
     rfm["p_alive"] = bgf.conditional_probability_alive(rfm["frequency"], rfm["recency"], rfm["T"])
     rfm["expected_txns_180d"] = bgf.conditional_expected_number_of_purchases_up_to_time(
         180, rfm["frequency"], rfm["recency"], rfm["T"]
@@ -156,7 +176,6 @@ def main():
     fig.tight_layout(); fig.savefig(OUT / "bgnbd_diagnostic.png"); plt.close(fig)
 
     # --- Persist outputs -----------------------------------------------------
-    rfm.rename(columns={"household_key": "household_key"}, inplace=True)
     rfm.to_parquet(PROCESSED_DIR / "btyd_predictions.parquet", index=False)
 
     summary = {
@@ -166,6 +185,11 @@ def main():
         "gamma_gamma_params": {k: float(v) for k, v in zip(["p", "q", "v"], ggf.params_.values)},
         "p_alive_median": float(rfm["p_alive"].median()),
         "p_alive_mean": float(rfm["p_alive"].mean()),
+        "freq_monetary_corr_repeat": freq_monetary_corr,
+        "degenerate_dropout_warning": degenerate_dropout,
+        "degenerate_dropout_note": ("a ~ 0 on this dense grocery panel: p_alive is ~1 "
+                                     "for nearly all households and is not an informative "
+                                     "churn signal here" if degenerate_dropout else None),
         "clv_180d_median": float(rfm["clv_180d"].median()),
         "clv_180d_mean": float(rfm["clv_180d"].mean()),
         "holdout_mae": mae,

@@ -76,8 +76,10 @@ lt_bgf = lt_results['bgf_params']
 pymc_bgf_mcmc = pymc_results['bgf_params_mcmc']
 pymc_bgf_map = pymc_results['bgf_params_map']
 
-# Note: PyMC-Marketing uses a hierarchical parameterization for a,b
-# with phi_dropout and kappa_dropout. We need to extract a and b.
+# Note: 03_pymc_analysis.py overrides PyMC-Marketing's default hierarchical
+# (phi_dropout/kappa_dropout) parameterization with flat HalfNormal priors on
+# a, b, alpha, r — so both libraries fit the same four parameters and the
+# comparison below is direct.
 print(f"{'Parameter':<12} {'Lifetimes (MLE)':<20} {'PyMC MAP':<20} {'PyMC MCMC (mean)':<20}")
 print("-"*72)
 
@@ -134,16 +136,24 @@ print(f"Lifetimes mean:       {merged_all['predicted_purchases_180d'].mean():.4f
 print(f"PyMC mean:            {merged_all['pymc_predicted_purchases_180d_mean'].mean():.4f}")
 
 # --- P(alive) ---
-print("\n--- P(Alive) ---")
-pa_corr_pearson, _ = pearsonr(merged_all['p_alive'], merged_all['pymc_p_alive_mean'])
-pa_corr_spearman, _ = spearmanr(merged_all['p_alive'], merged_all['pymc_p_alive_mean'])
-pa_mae = mean_absolute_error(merged_all['p_alive'], merged_all['pymc_p_alive_mean'])
+# Headline stats are on REPEAT customers only: both libraries return
+# p_alive = 1.0 identically (by formula) at frequency = 0, so pooling
+# one-time buyers would inflate the agreement numbers.
+print("\n--- P(Alive) — repeat customers (frequency > 0) ---")
+merged_repeat = merged_all[merged_all['frequency'] > 0]
+pa_corr_pearson, _ = pearsonr(merged_repeat['p_alive'], merged_repeat['pymc_p_alive_mean'])
+pa_corr_spearman, _ = spearmanr(merged_repeat['p_alive'], merged_repeat['pymc_p_alive_mean'])
+pa_mae = mean_absolute_error(merged_repeat['p_alive'], merged_repeat['pymc_p_alive_mean'])
 
 print(f"Pearson correlation:  {pa_corr_pearson:.6f}")
 print(f"Spearman correlation: {pa_corr_spearman:.6f}")
 print(f"MAE between libs:     {pa_mae:.4f}")
-print(f"Lifetimes mean:       {merged_all['p_alive'].mean():.4f}")
-print(f"PyMC mean:            {merged_all['pymc_p_alive_mean'].mean():.4f}")
+print(f"Lifetimes mean:       {merged_repeat['p_alive'].mean():.4f}")
+print(f"PyMC mean:            {merged_repeat['pymc_p_alive_mean'].mean():.4f}")
+
+pa_all_pearson, _ = pearsonr(merged_all['p_alive'], merged_all['pymc_p_alive_mean'])
+pa_all_mae = mean_absolute_error(merged_all['p_alive'], merged_all['pymc_p_alive_mean'])
+print(f"(all customers incl. frequency=0: r={pa_all_pearson:.6f}, MAE={pa_all_mae:.4f})")
 
 # --- CLV ---
 print("\n--- CLV (6 months) — Repeat Customers Only ---")
@@ -175,8 +185,9 @@ print(f"MAE between libs:     {es_mae:.2f}")
 print(f"Lifetimes mean:       {merged['expected_avg_profit'].mean():.2f}")
 print(f"PyMC mean:            {merged['pymc_expected_spend_mean'].mean():.2f}")
 
-# --- KS Tests ---
-print("\n--- Kolmogorov-Smirnov Tests ---")
+# --- KS Tests (descriptive only: the samples are paired per-customer
+# predictions, so these compare marginal distributions, not agreement) ---
+print("\n--- Kolmogorov-Smirnov Tests (descriptive) ---")
 ks_pp, p_pp = ks_2samp(merged_all['predicted_purchases_180d'], merged_all['pymc_predicted_purchases_180d_mean'])
 ks_pa, p_pa = ks_2samp(merged_all['p_alive'], merged_all['pymc_p_alive_mean'])
 ks_clv, p_clv = ks_2samp(merged['clv_6m'], merged['pymc_clv_6m_mean'])
@@ -215,7 +226,11 @@ print(f"\n{'Operation':<35} {'Lifetimes':<15} {'PyMC MAP':<15} {'PyMC MCMC':<15}
 print("-"*95)
 print(f"{'BG/NBD Fit':<35} {lt_results['fit_time_bgf']:<15.3f} {pymc_results['fit_time_bgf_map']:<15.1f} {pymc_results['fit_time_bgf_mcmc']:<15.1f} {pymc_results['fit_time_bgf_mcmc']/lt_results['fit_time_bgf']:<15.0f}")
 print(f"{'Gamma-Gamma Fit':<35} {lt_results['fit_time_gg']:<15.3f} {'N/A':<15} {pymc_results['fit_time_gg_mcmc']:<15.1f} {pymc_results['fit_time_gg_mcmc']/lt_results['fit_time_gg']:<15.0f}")
-print(f"{'CLV Computation':<35} {'<0.1':<15} {'N/A':<15} {pymc_results['clv_computation_time']:<15.1f} {'N/A':<15}")
+lt_clv_time = lt_results.get('clv_time')
+lt_clv_str = f"{lt_clv_time:.3f}" if lt_clv_time is not None else "n/a"
+clv_ratio = (f"{pymc_results['clv_computation_time'] / lt_clv_time:<15.0f}"
+             if lt_clv_time else f"{'N/A':<15}")
+print(f"{'CLV Computation':<35} {lt_clv_str:<15} {'N/A':<15} {pymc_results['clv_computation_time']:<15.1f} {clv_ratio}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 4. VISUALIZATIONS
@@ -433,12 +448,17 @@ comparison_summary = {
         'lt_mean': merged_all['predicted_purchases_180d'].mean(),
         'pymc_mean': merged_all['pymc_predicted_purchases_180d_mean'].mean(),
     },
-    'p_alive': {
+    'p_alive_repeat_customers': {
         'pearson_r': pa_corr_pearson,
         'spearman_r': pa_corr_spearman,
         'mae': pa_mae,
-        'lt_mean': merged_all['p_alive'].mean(),
-        'pymc_mean': merged_all['pymc_p_alive_mean'].mean(),
+        'lt_mean': merged_repeat['p_alive'].mean(),
+        'pymc_mean': merged_repeat['pymc_p_alive_mean'].mean(),
+        'note': 'frequency > 0 only; both libraries return p_alive = 1.0 identically at frequency = 0',
+    },
+    'p_alive_all_customers': {
+        'pearson_r': pa_all_pearson,
+        'mae': pa_all_mae,
     },
     'clv': {
         'pearson_r': clv_corr_pearson,

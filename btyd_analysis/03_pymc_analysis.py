@@ -2,14 +2,15 @@
 Step 3: BTYD Analysis using PyMC-Marketing Library
 BG/NBD Model + Gamma-Gamma Model → CLV Prediction
 
-Strategy: 
-- BG/NBD: MAP for point estimates + 1-chain short MCMC for uncertainty
-- Gamma-Gamma: MCMC (faster, only 3 parameters, no customer-level likelihood complexity)
-- Record all timing for comparison
+Strategy:
+- BG/NBD: MAP for point estimates + 4-chain MCMC (1000 draws / 1000 tune)
+  for uncertainty, with R-hat / ESS convergence diagnostics reported.
+- Gamma-Gamma: 4-chain MCMC (only 3 parameters).
+- Record all timing for comparison.
 """
 
 import os
-os.environ['PYTENSOR_FLAGS'] = 'device=cpu,floatX=float64,optimizer=fast_compile'
+os.environ['PYTENSOR_FLAGS'] = 'device=cpu,floatX=float64'
 
 import pandas as pd
 import numpy as np
@@ -18,11 +19,28 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
-warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=UserWarning)
 import json
 import time
 import arviz as az
 from pathlib import Path
+
+MCMC_CHAINS = 4
+MCMC_DRAWS = 1000
+MCMC_TUNE = 1000
+
+
+def report_convergence(fit_result, label):
+    """Print and return R-hat / ESS diagnostics — the whole point of paying
+    for MCMC is a posterior you can trust; verify it."""
+    summ = az.summary(fit_result)
+    max_rhat = float(summ["r_hat"].max())
+    min_ess = float(summ["ess_bulk"].min())
+    ok = max_rhat < 1.01 and min_ess > 400
+    print(f"[convergence: {label}] max R-hat = {max_rhat:.4f}, min bulk-ESS = {min_ess:.0f} "
+          f"-> {'OK' if ok else 'WARNING: inspect trace plots'}")
+    return {"max_rhat": max_rhat, "min_ess_bulk": min_ess, "converged": ok}
 
 BASE_DIR = Path(__file__).parent
 
@@ -76,11 +94,11 @@ bgf_map_summary = bgm_map.fit_summary()
 print(bgf_map_summary)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PART 1B: BG/NBD MODEL — MCMC (1 chain, 200 draws for uncertainty)
+# PART 1B: BG/NBD MODEL — MCMC (4 chains x 1000 draws for uncertainty)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 print("\n" + "="*70)
-print("BG/NBD MODEL — PyMC-Marketing (MCMC, 1 chain x 200 draws)")
+print(f"BG/NBD MODEL — PyMC-Marketing (MCMC, {MCMC_CHAINS} chains x {MCMC_DRAWS} draws)")
 print("="*70)
 
 bgm = clv.BetaGeoModel(
@@ -91,12 +109,12 @@ bgm.build_model()
 
 start_time = time.time()
 bgm.fit(
-    chains=1,
-    draws=200,
-    tune=200,
+    chains=MCMC_CHAINS,
+    draws=MCMC_DRAWS,
+    tune=MCMC_TUNE,
     random_seed=42,
     progressbar=True,
-    cores=1,
+    cores=MCMC_CHAINS,
 )
 fit_time_bgf_mcmc = time.time() - start_time
 print(f"\nMCMC Fit time: {fit_time_bgf_mcmc:.1f} seconds")
@@ -104,6 +122,7 @@ print(f"\nMCMC Fit time: {fit_time_bgf_mcmc:.1f} seconds")
 print("\nBG/NBD Parameter Summary (MCMC):")
 bgf_mcmc_summary = bgm.fit_summary()
 print(bgf_mcmc_summary)
+bgf_convergence = report_convergence(bgm.fit_result, "BG/NBD")
 
 # ─── Predict expected purchases in next 180 days ─────────────────────────────
 print("\n--- Predicted Purchases (next 180 days) ---")
@@ -150,12 +169,12 @@ print(gg)
 
 start_time = time.time()
 gg.fit(
-    chains=1,
-    draws=500,
-    tune=500,
+    chains=MCMC_CHAINS,
+    draws=MCMC_DRAWS,
+    tune=MCMC_TUNE,
     random_seed=42,
     progressbar=True,
-    cores=1,
+    cores=MCMC_CHAINS,
 )
 fit_time_gg_mcmc = time.time() - start_time
 print(f"\nGamma-Gamma MCMC Fit time: {fit_time_gg_mcmc:.1f} seconds")
@@ -163,6 +182,7 @@ print(f"\nGamma-Gamma MCMC Fit time: {fit_time_gg_mcmc:.1f} seconds")
 print("\nGamma-Gamma Parameter Summary:")
 gg_summary = gg.fit_summary()
 print(gg_summary)
+gg_convergence = report_convergence(gg.fit_result, "Gamma-Gamma")
 
 # Expected customer spend
 print("\n--- Expected Customer Spend ---")
@@ -183,7 +203,8 @@ print("\n" + "="*70)
 print("CLV PREDICTION (6 months) — PyMC-Marketing")
 print("="*70)
 
-# Thin fit results to speed up CLV computation
+# Thin to every 2nd draw for CLV computation speed: 2,000 retained draws is
+# ample for stable posterior means/stds (diagnostics above use the full set).
 bgm.thin_fit_result(keep_every=2)
 
 start_time = time.time()
@@ -322,6 +343,9 @@ pymc_results = {
     'bgf_params_mcmc': bgf_params,
     'bgf_params_map': bgf_map_params,
     'ggf_params_mcmc': gg_params,
+    'mcmc_settings': {'chains': MCMC_CHAINS, 'draws': MCMC_DRAWS, 'tune': MCMC_TUNE},
+    'bgf_convergence': bgf_convergence,
+    'gg_convergence': gg_convergence,
     'fit_time_bgf_mcmc': fit_time_bgf_mcmc,
     'fit_time_bgf_map': fit_time_bgf_map,
     'fit_time_gg_mcmc': fit_time_gg_mcmc,

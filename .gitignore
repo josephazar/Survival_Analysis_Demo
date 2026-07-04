@@ -14,46 +14,22 @@ build/
 .DS_Store
 Thumbs.db
 
-# ── IDE ──
+# ── IDE / tooling caches ──
 .vscode/
 .idea/
-
-# ── AI assistants / agent scratch / caches ──
-.claude/
-.claude*
-.cursor/
-.codeium/
-.aider*
-.openai/
-.anthropic/
-CLAUDE.md
-.github/copilot/
-.ccd/
-.agent/
 .cache/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
 .tox/
 
-# ── Review / planning docs (kept locally, not tracked) ──
-REVIEW_RESPONSE.md
-DUNNHUMBY_PLAN.md
-Dunnhumby_Survival_Analysis_Plan.md
-dunnhumby/DUNNHUMBY_PLAN.md
-
-# ── Data (too large for git) ──
-../data/online_retail_II.csv
-../data/online_retail_II.csv.zip
+# ── Generated outputs (reproducible by re-running the pipelines) ──
 dunnhumby/processed/
 dunnhumby/artifacts/
 scripts/artifacts/
-
-# ── btyd_analysis generated outputs ──
 btyd_analysis/*.parquet
 btyd_analysis/*.png
 btyd_analysis/*.json
 btyd_analysis/*.log
 btyd_analysis/BTYD_Library_Comparison_Report.md
 btyd_analysis/pymc_api_notes.txt
-btyd_analysis/pymc_output.log

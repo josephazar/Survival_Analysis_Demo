@@ -1,16 +1,11 @@
 """Stage 03 — Landmark-based household feature engineering.
 
-REWRITE (v2). The original implementation had two methodology problems flagged
-in review:
-
-    1. `recency_ratio = duration / T_days` embedded the survival target in a
-       feature (duration is the y-axis).
-    2. Features like `*_last_90d` and `spend_trend` were windowed to MAX_DAY,
-       so they implicitly encoded whether the household had stopped shopping
-       by the end of the observation window — which is exactly the churn
-       label.
-
-This version uses a **landmark analysis**:
+Design: a **landmark analysis**, which structurally rules out the two classic
+leakage traps in churn feature engineering — (a) features that embed the
+survival target itself (e.g. `recency_ratio = duration / T_days`, where
+duration IS the y-axis), and (b) recency windows anchored at the end of the
+observation period, which encode whether the household had already stopped
+shopping (i.e. the label).
 
     - Pick a landmark day t0 (default: 500, leaving 211 days of follow-up).
     - Keep only households that are *alive at t0* — i.e. had a basket in
@@ -23,8 +18,15 @@ This version uses a **landmark analysis**:
         event_time = (last_basket_overall + CHURN_WINDOW) - t0     if event=1
                    = MAX_DAY - t0                                  if censored
       i.e. the event *is declared* when the inactivity threshold is crossed,
-      not when the last basket occurred — this fixes the misaligned time
-      axis issue.
+      not when the last basket occurred — otherwise event and censoring times
+      sit on misaligned time axes.
+
+Churn here is *terminal* inactivity: the event is the start of the lapse that
+never ends within the data, judged at MAX_DAY. A household with a long
+mid-follow-up gap that later returns is not an event. This matches the
+retention-business question ("has this customer left for good?") but it is
+not a first-passage definition — S(t) reads "probability the terminal lapse
+has not begun", not "probability of never having a >window gap".
 
 Non-landmark (full-window) features are still emitted separately for the
 BTYD benchmark and exploratory uses, clearly labelled `household_features_full.parquet`.
@@ -81,6 +83,10 @@ def compute_survival_target(baskets: pd.DataFrame, t0: int, max_day: int, window
         out["last_overall"] + window,
         max_day,
     )
+    # Boundary case: a household whose last basket is exactly t0 - window and
+    # never returns has its churn declared exactly AT t0 (event_time 0). It is
+    # in the cohort (alive at t0 under the strict-inequality definition), so we
+    # clip its event time to the smallest positive duration rather than drop it.
     out["event_time"] = (out["event_day"] - t0).clip(lower=1)  # strictly positive
     out = out.reset_index()
     return out[["household_key", "event_time", "event_observed", "last_pre_t0", "last_overall"]]
@@ -337,17 +343,18 @@ def main():
         },
         "top_abs_corr_with_event_time": corr_time.head(10).round(4).to_dict(),
         "top_abs_corr_with_event_observed": corr_event.head(10).round(4).to_dict(),
-        "features_with_abs_corr_gt_0p80": [
+        # Threshold matches tests/test_leakage_and_smoke.py — one source of truth.
+        "features_with_abs_corr_gt_0p70": [
             c for c in num_cols
-            if abs(features[c].corr(features["event_observed"])) > 0.80
-               or abs(features[c].corr(features["event_time"])) > 0.80
+            if abs(features[c].corr(features["event_observed"])) > 0.70
+               or abs(features[c].corr(features["event_time"])) > 0.70
         ],
     }
     with open(OUT / "leakage_report.json", "w") as fh:
         json.dump(leakage_report, fh, indent=2)
     print(f"\n[leakage report] top 5 |corr| with event_observed:")
     print(corr_event.head(5).round(4).to_string())
-    print(f"\n[leakage report] features with |corr| > 0.80: {leakage_report['features_with_abs_corr_gt_0p80']}")
+    print(f"\n[leakage report] features with |corr| > 0.70: {leakage_report['features_with_abs_corr_gt_0p70']}")
     print(f"\n[outputs]")
     print(f"  {PROCESSED_DIR / 'household_features_landmark.parquet'}")
     print(f"  {PROCESSED_DIR / 'household_features_full.parquet'}")

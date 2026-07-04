@@ -1,31 +1,26 @@
-"""Stage 05 — Early-behavior churn classifier (v2, review-fixed).
+"""Stage 05 — Early-behavior churn classifier.
 
-The original Online-Retail Stage-1 "conversion model" (one-timers vs.
-repeaters) doesn't fit Dunnhumby — only 3 of 2,500 households are one-timers.
-We pose a more data-appropriate question:
+The Online-Retail Stage-1 "conversion model" (one-timers vs. repeaters)
+doesn't fit Dunnhumby — only 3 of 2,500 households are one-timers. We pose a
+more data-appropriate question:
 
     Given a household's FIRST 90 DAYS of shopping behaviour, can we
     predict whether they will eventually be flagged as churned at the
     end of the 711-day observation window (14-day inactivity rule)?
 
-Review fixes:
-    1. XGBoost now uses a VALIDATION split carved from the training set
-       for early stopping — no more test-set contamination.
-    2. Docstring now matches the actual code (percentile-based temporal
-       split, not a fixed day).
-
 Design:
     - Eligibility: first_day <= MAX_DAY − 90 − 180 (= 441) so we can label
       churn at the end of the window.
     - Features: only transactions where DAY <= first_day + 90.
-    - Label: eventual churn flag from `household_features_full.parquet`
-      — re-derived here as `(MAX_DAY - last_day) > CHURN_WINDOW`.
-    - Temporal split on `first_day`:
-        train : first_day <= p48   (~60% of eligible)
-        val   : p48 < first_day <= p60   (~12%)
-        test  : first_day > p60   (~28%)
+    - Label: eventual churn, re-derived as `(MAX_DAY - last_day) > CHURN_WINDOW`.
+    - Temporal split on `first_day` at the p48 / p60 quantiles. Because
+      `first_day` is heavily tied at low values (most households appear
+      early), the realised proportions are roughly 49% / 12% / 40% —
+      not 60/12/28; the quantile is a cut point, not a size guarantee.
     - Models: LogReg, Random Forest, XGBoost (val-based early stopping).
-    - Metrics: ROC-AUC, PR-AUC, F1 at Youden-optimal threshold.
+    - The VALIDATION fold picks the Youden threshold and the best model;
+      the test fold is scored once.
+    - Metrics: ROC-AUC, PR-AUC, F1 at the val-chosen threshold.
 
 Outputs:
     processed/early_dropout_predictions.parquet
@@ -109,17 +104,19 @@ def train_and_evaluate(X_train, y_train, X_val, y_val, X_test, y_test):
     scaler = StandardScaler()
     Xs_tr, Xs_va, Xs_te = scaler.fit_transform(X_train), scaler.transform(X_val), scaler.transform(X_test)
 
-    results, models, probs = {}, {}, {}
+    results, models, probs, val_probs = {}, {}, {}, {}
 
     lr = LogisticRegression(max_iter=1000, class_weight="balanced", random_state=RANDOM_STATE)
     lr.fit(Xs_tr, y_train)
     models["LogReg"] = lr
+    val_probs["LogReg"] = lr.predict_proba(Xs_va)[:, 1]
     probs["LogReg"] = lr.predict_proba(Xs_te)[:, 1]
 
     rf = RandomForestClassifier(n_estimators=400, max_depth=8, min_samples_leaf=10,
                                  class_weight="balanced", random_state=RANDOM_STATE, n_jobs=-1)
     rf.fit(X_train, y_train)
     models["RandomForest"] = rf
+    val_probs["RandomForest"] = rf.predict_proba(X_val)[:, 1]
     probs["RandomForest"] = rf.predict_proba(X_test)[:, 1]
 
     pos, neg = y_train.sum(), (y_train == 0).sum()
@@ -131,22 +128,24 @@ def train_and_evaluate(X_train, y_train, X_val, y_val, X_test, y_test):
         random_state=RANDOM_STATE, eval_metric="auc",
         early_stopping_rounds=30,
     )
-    # Early stopping on VALIDATION (not test) — P1 fix
+    # Early stopping on VALIDATION, never test
     xgb.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
     print(f"       xgb best iter on val = {xgb.best_iteration}")
     models["XGBoost"] = xgb
+    val_probs["XGBoost"] = xgb.predict_proba(X_val)[:, 1]
     probs["XGBoost"] = xgb.predict_proba(X_test)[:, 1]
 
     for name, p in probs.items():
-        auc = roc_auc_score(y_test, p)
-        pr_auc = average_precision_score(y_test, p)
-        fpr, tpr, thr = roc_curve(y_test, p)
-        youden = int(np.argmax(tpr - fpr))
-        preds = (p >= thr[youden]).astype(int)
+        # Youden threshold chosen on VALIDATION, applied frozen to test.
+        fpr_v, tpr_v, thr_v = roc_curve(y_val, val_probs[name])
+        youden = int(np.argmax(tpr_v - fpr_v))
+        threshold = float(thr_v[youden])
         results[name] = {
-            "auc": float(auc), "pr_auc": float(pr_auc),
-            "f1_at_youden": float(f1_score(y_test, preds)),
-            "optimal_threshold": float(thr[youden]),
+            "auc": float(roc_auc_score(y_test, p)),
+            "pr_auc": float(average_precision_score(y_test, p)),
+            "val_auc": float(roc_auc_score(y_val, val_probs[name])),
+            "f1_at_val_threshold": float(f1_score(y_test, (p >= threshold).astype(int))),
+            "threshold_from_val": threshold,
         }
 
     return models, results, probs
@@ -154,7 +153,7 @@ def train_and_evaluate(X_train, y_train, X_val, y_val, X_test, y_test):
 
 def main():
     print("=" * 64)
-    print("STAGE 05: EARLY-BEHAVIOUR CHURN CLASSIFIER (val-based early stopping)")
+    print("STAGE 05: EARLY-BEHAVIOUR CHURN CLASSIFIER")
     print("=" * 64)
 
     baskets = pd.read_parquet(PROCESSED_DIR / "baskets.parquet")
@@ -233,7 +232,8 @@ def main():
     ax.set_title("Precision-Recall (test)")
     ax.legend(); fig.tight_layout(); fig.savefig(OUT / "pr_curve.png"); plt.close(fig)
 
-    best_name = max(results, key=lambda k: results[k]["auc"])
+    # Winner picked on validation AUC; its test AUC is the reported number.
+    best_name = max(results, key=lambda k: results[k]["val_auc"])
     best = models[best_name]
     if hasattr(best, "feature_importances_"):
         imp = pd.Series(best.feature_importances_, index=feature_cols).sort_values(ascending=True).tail(20)
@@ -258,9 +258,11 @@ def main():
             "n_features": len(feature_cols),
             "results": results,
             "best_model": best_name,
+            "selection_rule": "max validation AUC; test reported once",
         }, fh, indent=2)
 
-    print(f"\n[best] {best_name}: AUC={results[best_name]['auc']:.4f}")
+    print(f"\n[best by val AUC] {best_name}: val={results[best_name]['val_auc']:.4f}  "
+          f"test={results[best_name]['auc']:.4f}")
     print(f"[output] {OUT}")
 
 

@@ -1,10 +1,19 @@
-"""Online Retail II — Stage-1 conversion model (REVIEW-FIXED).
+"""Online Retail II — Stage-1 conversion model.
 
-Apples-to-apples port of the 25-feature notebook (stage1-conversion-model.ipynb)
-with ONE methodology change: XGBoost early-stopping now runs on a validation
-split carved from the training set (was: `eval_set=[(X_test, y_test)]`).
+First-invoice features -> will the customer place a second order within 90 days?
 
-Feature set matches the notebook exactly:
+Methodology guarantees:
+    - Fixed 90-day conversion horizon for BOTH train and test labels. Without a
+      fixed horizon, train customers (up to ~24 months of follow-up) and test
+      customers (~3-6 months) would carry incomparable labels, and train labels
+      would use outcomes from after the split cutoff.
+    - Temporal split: every test customer retains >= 90 days of follow-up
+      before the data ends, so no test label is right-censored.
+    - A validation slice carved from train drives XGBoost early stopping,
+      classification-threshold selection (Youden's J), and best-model
+      selection. The test fold is scored exactly once.
+
+Feature set (shared with stage1-conversion-model.ipynb):
     - Monetary:          first_total_spend_log, first_avg_price, first_max_price,
                           first_price_range, first_price_std
     - Basket:            first_num_lines, first_unique_items, first_total_qty,
@@ -16,13 +25,11 @@ Feature set matches the notebook exactly:
     - Diversity:         first_desc_diversity
     - Concentration:     first_spend_concentration
 
-Temporal split matches the notebook:
+Temporal split:
     train : first_purchase <= 2011-06-01
     test  : 2011-06-01 < first_purchase <= 2011-09-10
-Validation slice: 15% of train (random 85/15, stratified) — ONLY used for XGBoost
-early stopping.
-
-This means the before/after AUC comparison isolates the early-stopping change.
+Validation slice: 15% of train (random 85/15, stratified). All models fit on the
+remaining 85% so the validation fold is genuinely held out from fitting.
 """
 from __future__ import annotations
 
@@ -48,7 +55,8 @@ DATA_CSV = ROOT.parent.parent / "data" / "online_retail_II.csv"
 
 TRAIN_END = pd.Timestamp("2011-06-01")       # matches notebook cutoff
 TEST_END = pd.Timestamp("2011-09-10")        # must have 90d observation remaining
-VAL_FRACTION = 0.15                          # of training set; used ONLY for XGB early stopping
+VAL_FRACTION = 0.15                          # of training set; early stopping + threshold + model selection
+CONVERSION_WINDOW_DAYS = 90                  # fixed label horizon for all cohorts
 RANDOM_STATE = 42
 
 EUROPE_MAJOR = {"France", "Germany", "Spain", "Italy", "Netherlands", "Belgium",
@@ -131,16 +139,27 @@ def build_first_invoice_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_label(df: pd.DataFrame, observation_end: pd.Timestamp,
-                min_observation_days: int = 90) -> pd.DataFrame:
-    """Label customers as repeater (>=2 invoices) or not — but exclude those without
-    at least min_observation_days of follow-up (censoring-aware)."""
-    agg = df.groupby("Customer ID").agg(
-        first_date=("InvoiceDate", "min"),
-        n_invoices=("Invoice", "nunique"),
-    ).reset_index()
+                conversion_window_days: int = CONVERSION_WINDOW_DAYS) -> pd.DataFrame:
+    """Label = second invoice within `conversion_window_days` of the first.
+
+    A fixed horizon keeps labels comparable across cohorts: every included
+    customer is observed for at least the full window, and conversions after
+    the window do not count regardless of how long the customer was tracked.
+    """
+    inv = (df.groupby(["Customer ID", "Invoice"], as_index=False)["InvoiceDate"].min()
+             .sort_values(["Customer ID", "InvoiceDate"]))
+    inv["inv_rank"] = inv.groupby("Customer ID").cumcount()
+    first = inv.loc[inv["inv_rank"] == 0].set_index("Customer ID")["InvoiceDate"].rename("first_date")
+    second = inv.loc[inv["inv_rank"] == 1].set_index("Customer ID")["InvoiceDate"].rename("second_date")
+    n_inv = inv.groupby("Customer ID").size().rename("n_invoices")
+    agg = pd.concat([first, second, n_inv], axis=1).reset_index()
+
     agg["obs_days"] = (observation_end - agg["first_date"]).dt.days
-    agg = agg[(agg["n_invoices"] >= 2) | (agg["obs_days"] >= min_observation_days)].copy()
-    agg["label"] = (agg["n_invoices"] >= 2).astype(int)
+    # Everyone must have the full window of follow-up, or a "no conversion"
+    # label could just mean "not observed long enough".
+    agg = agg[agg["obs_days"] >= conversion_window_days].copy()
+    days_to_second = (agg["second_date"] - agg["first_date"]).dt.days
+    agg["label"] = (days_to_second <= conversion_window_days).fillna(False).astype(int)
     return agg[["Customer ID", "first_date", "n_invoices", "obs_days", "label"]]
 
 
@@ -157,11 +176,13 @@ def main():
     data = labels.merge(feats.drop(columns=["first_date"]), on="Customer ID", how="inner")
     print(f"[data] {len(data)} customers, label mean = {data['label'].mean():.3f}")
 
-    # Notebook's split: train <= 2011-06-01, test in (2011-06-01, 2011-09-10]
+    # Temporal split: train <= 2011-06-01, test in (2011-06-01, 2011-09-10]
     train_full = data[data["first_date"] <= TRAIN_END].copy()
     test = data[(data["first_date"] > TRAIN_END) & (data["first_date"] <= TEST_END)].copy()
 
-    # Carve a validation slice from TRAIN ONLY (for XGBoost early stopping).
+    # Carve a validation slice from TRAIN ONLY. All models fit on the remaining
+    # 85%, so validation stays out of fitting and can be reused for early
+    # stopping, threshold selection, and model selection.
     from sklearn.model_selection import train_test_split as _tts
     train, val = _tts(train_full, test_size=VAL_FRACTION, random_state=RANDOM_STATE,
                        stratify=train_full["label"])
@@ -169,30 +190,26 @@ def main():
     print(f"[split rates] train={train['label'].mean():.3f}  val={val['label'].mean():.3f}  test={test['label'].mean():.3f}")
 
     feat_cols = [c for c in feats.columns if c not in ("Customer ID", "first_date")]
-    # LogReg/RF train on the FULL training cohort (matches notebook behaviour).
-    X_train_full, y_train_full = train_full[feat_cols], train_full["label"]
     X_train, y_train = train[feat_cols], train["label"]
     X_val, y_val = val[feat_cols], val["label"]
     X_test, y_test = test[feat_cols], test["label"]
 
     scaler = StandardScaler()
-    Xs_tr_full = scaler.fit_transform(X_train_full)
+    Xs_tr = scaler.fit_transform(X_train)
+    Xs_va = scaler.transform(X_val)
     Xs_te = scaler.transform(X_test)
-    # Separate fit for XGB-val context (on the train subset, not train_full)
-    scaler_xgb = StandardScaler()
-    Xs_tr = scaler_xgb.fit_transform(X_train)
-    Xs_va = scaler_xgb.transform(X_val)
-    Xs_te_xgb = scaler_xgb.transform(X_test)
 
-    results, probs = {}, {}
+    results, probs, val_probs = {}, {}, {}
 
     lr = LogisticRegression(max_iter=1000, class_weight="balanced", random_state=RANDOM_STATE)
-    lr.fit(Xs_tr_full, y_train_full)                 # train on full training cohort
+    lr.fit(Xs_tr, y_train)
+    val_probs["LogReg"] = lr.predict_proba(Xs_va)[:, 1]
     probs["LogReg"] = lr.predict_proba(Xs_te)[:, 1]
 
     rf = RandomForestClassifier(n_estimators=400, max_depth=8, min_samples_leaf=10,
                                  class_weight="balanced", random_state=RANDOM_STATE, n_jobs=-1)
-    rf.fit(X_train_full, y_train_full)               # full training cohort
+    rf.fit(X_train, y_train)
+    val_probs["RandomForest"] = rf.predict_proba(X_val)[:, 1]
     probs["RandomForest"] = rf.predict_proba(X_test)[:, 1]
 
     pos, neg = y_train.sum(), (y_train == 0).sum()
@@ -204,28 +221,30 @@ def main():
         random_state=RANDOM_STATE, eval_metric="auc",
         early_stopping_rounds=30,
     )
-    # XGBoost uses train/val split (85/15 of the training cohort) so early stopping
-    # never sees the test fold. Predictions are on the held-out test set.
     xgb.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
     print(f"[xgb] best iter on val = {xgb.best_iteration}")
+    val_probs["XGBoost"] = xgb.predict_proba(X_val)[:, 1]
     probs["XGBoost"] = xgb.predict_proba(X_test)[:, 1]
 
     for name, p in probs.items():
-        auc = roc_auc_score(y_test, p)
-        pr_auc = average_precision_score(y_test, p)
-        fpr, tpr, thr = roc_curve(y_test, p)
-        y = int(np.argmax(tpr - fpr))
-        f1 = f1_score(y_test, (p >= thr[y]).astype(int))
+        # Youden's J threshold chosen on VALIDATION, applied frozen to test.
+        fpr_v, tpr_v, thr_v = roc_curve(y_val, val_probs[name])
+        j = int(np.argmax(tpr_v - fpr_v))
+        threshold = float(thr_v[j])
         results[name] = {
-            "auc": float(auc), "pr_auc": float(pr_auc),
-            "f1_at_youden": float(f1), "optimal_threshold": float(thr[y]),
+            "auc": float(roc_auc_score(y_test, p)),
+            "pr_auc": float(average_precision_score(y_test, p)),
+            "val_auc": float(roc_auc_score(y_val, val_probs[name])),
+            "f1_at_val_threshold": float(f1_score(y_test, (p >= threshold).astype(int))),
+            "threshold_from_val": threshold,
         }
 
     print("\n[test results]")
     print(pd.DataFrame(results).T.round(4))
 
-    best = max(results, key=lambda k: results[k]["auc"])
-    print(f"\n[best] {best}: AUC={results[best]['auc']:.4f}")
+    # Winner is picked on validation AUC; its test AUC is the reported number.
+    best = max(results, key=lambda k: results[k]["val_auc"])
+    print(f"\n[best by val AUC] {best}: val={results[best]['val_auc']:.4f}  test={results[best]['auc']:.4f}")
 
     out = test[["Customer ID", "first_date", "label"]].copy()
     for name, p in probs.items():
@@ -245,12 +264,14 @@ def main():
             "test_label_rate": float(test["label"].mean()),
             "feature_set": sorted(feat_cols),
             "n_features": len(feat_cols),
+            "conversion_window_days": CONVERSION_WINDOW_DAYS,
             "results": results,
-            "best_model": best,
-            "methodology_note": ("Matches notebook feature set (25 features) and split "
-                                 "(train <= 2011-06-01, test in (2011-06-01, 2011-09-10]). "
-                                 "XGBoost carves a 15% validation slice from train for "
-                                 "early stopping — the ONLY methodology change vs the notebook."),
+            "best_model_by_val_auc": best,
+            "methodology_note": ("Fixed 90-day conversion horizon for all cohorts; "
+                                 "temporal split (train <= 2011-06-01, test in "
+                                 "(2011-06-01, 2011-09-10]); all models fit on 85% of "
+                                 "train; validation drives early stopping, Youden "
+                                 "threshold, and model selection; test scored once."),
         }, fh, indent=2)
 
 

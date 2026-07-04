@@ -8,10 +8,18 @@ with a landmark-based design:
     - Event time is measured from the landmark forward (churn declared
       at last_purchase + window; censored at study end).
     - Evaluation uses a 60/20/20 train/val/test split. The val fold is
-      used for hyperparameter selection (CoxNet alpha, GBSA n_estimators)
-      and XGBoost early stopping; the test fold is touched once.
+      used for hyperparameter selection (CoxNet alpha, GBSA n_estimators);
+      the test fold is touched once. The split is random (event-stratified)
+      rather than temporal because this is a single-landmark design: all
+      customers share the same calendar follow-up window.
 
-Data:   /Users/josephazar/Desktop/WORK/GITHUB/data/online_retail_II.csv
+Caveat worth knowing: with inactivity-defined churn, events declared in the
+first `window` days after the landmark are partly mechanical — a customer
+already inactive at t0 who never returns gets event_time = last_pre + window.
+Features may legitimately predict this (it is not leakage), but very early
+event times should not be read as fresh post-landmark behaviour.
+
+Data:   ../data/online_retail_II.csv  (relative to the repo root)
 Dates:  Dec-2009..Dec-2011
 Landmark t0:   2011-06-01  (observation_end - 192 days)
 Follow-up:     2011-06-01..2011-12-09
@@ -40,7 +48,10 @@ from sksurv.metrics import (concordance_index_ipcw, cumulative_dynamic_auc,
                              integrated_brier_score)
 from sksurv.util import Surv
 
-warnings.filterwarnings("ignore")
+# Silence known-noisy deprecation chatter only; model warnings (e.g. Cox
+# convergence) stay visible — they are diagnostics, not noise.
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 ROOT = Path(__file__).resolve().parent
 ART = ROOT / "artifacts"
@@ -160,7 +171,7 @@ def build_landmark_features(df: pd.DataFrame, landmark: pd.Timestamp) -> pd.Data
 
 def main():
     print("=" * 64)
-    print("ONLINE RETAIL II — LANDMARK SURVIVAL (review-fixed)")
+    print("ONLINE RETAIL II — LANDMARK SURVIVAL")
     print(f"  landmark = {LANDMARK_DATE.date()}  churn window = {CHURN_WINDOW}d")
     print("=" * 64)
 
@@ -184,7 +195,9 @@ def main():
 
     print(f"[features] {len(feat_cols)} cols, n={len(data)}")
 
-    # --- Leakage sanity check ---
+    # --- Leakage smoke check (linear correlation with the event flag only;
+    # it will not catch nonlinear or timing leakage — the design guarantees
+    # above are the real defence, this is a tripwire) ---
     leaks = []
     for c in feat_cols:
         if abs(data[c].corr(data["event_observed"])) > 0.7:
@@ -199,6 +212,15 @@ def main():
     idx_tr, idx_va = train_test_split(idx_tv, test_size=0.25, random_state=RANDOM_STATE,
                                         stratify=data.loc[idx_tv, "event_observed"])
     print(f"[split] train={len(idx_tr)}  val={len(idx_va)}  test={len(idx_te)}")
+
+    # Persist the split so downstream stages (03_scorecard.py) reuse the exact
+    # same folds instead of re-deriving them.
+    split_assign = pd.DataFrame({
+        "Customer ID": data["Customer ID"],
+        "split": np.select([data.index.isin(idx_tr), data.index.isin(idx_va)],
+                            ["train", "val"], default="test"),
+    })
+    split_assign.to_parquet(ART / "online_retail_split_assignment.parquet", index=False)
 
     imputer = SimpleImputer(strategy="median")
     scaler = StandardScaler()
@@ -217,7 +239,7 @@ def main():
 
     t_min = int(max(y_te["event_time_days"].min(), y_tr["event_time_days"].min()) + 1)
     t_max = int(min(y_te["event_time_days"].max(), y_tr["event_time_days"].max()) - 1)
-    eval_times = np.linspace(t_min, t_max, 10)
+    eval_times = np.linspace(t_min, t_max, 25)
     print(f"[eval_times] {eval_times.round(1).tolist()}")
 
     metrics = {}
@@ -228,22 +250,18 @@ def main():
     cph = CoxPHFitter(penalizer=0.1)
     cph.fit(cph_df, duration_col="event_time_days", event_col="event_observed", show_progress=False)
     risk_te = cph.predict_partial_hazard(pd.DataFrame(Xte, columns=feat_cols)).values.ravel()
-    surv = cph.predict_survival_function(pd.DataFrame(Xte, columns=feat_cols), times=eval_times).values.T
+    # predict_survival_function(times=eval_times) is already on the eval grid
+    surv_mat = cph.predict_survival_function(pd.DataFrame(Xte, columns=feat_cols), times=eval_times).values.T
 
-    def make_fn(row):
-        def fn(t): return np.interp(t, eval_times, row)
-        return fn
-    surv_fns = [make_fn(r) for r in surv]
     c = concordance_index_ipcw(y_tr_s, y_te_s, risk_te)[0]
-    td_auc, td_mean = cumulative_dynamic_auc(y_tr_s, y_te_s, risk_te, eval_times)
-    surv_mat = np.asarray([fn(eval_times) for fn in surv_fns])
+    _, td_mean = cumulative_dynamic_auc(y_tr_s, y_te_s, risk_te, eval_times)
     ibs = integrated_brier_score(y_tr_s, y_te_s, surv_mat, eval_times)
     metrics["CoxPH"] = {"c_index_ipcw": float(c), "mean_td_auc": float(td_mean), "ibs": float(ibs)}
     print(f"  CoxPH  C={c:.4f}  TD-AUC={td_mean:.4f}  IBS={ibs:.4f}")
 
     # CoxNet
     print("[2/4] CoxNet")
-    coxnet = CoxnetSurvivalAnalysis(l1_ratio=0.5, alpha_min_ratio=0.01, max_iter=500, fit_baseline_model=True)
+    coxnet = CoxnetSurvivalAnalysis(l1_ratio=0.5, alpha_min_ratio=0.01, max_iter=5000, fit_baseline_model=True)
     coxnet.fit(Xtr, y_tr_s)
     val_c = [concordance_index_ipcw(y_tr_s, y_va_s, coxnet.predict(Xva, alpha=a))[0] for a in coxnet.alphas_]
     best_alpha = coxnet.alphas_[int(np.argmax(val_c))]
@@ -313,7 +331,7 @@ def main():
         "n_features": len(feat_cols),
         "event_rate_test": float(y_te["event_observed"].mean()),
         "eval_times": eval_times.tolist(),
-        "leakage_check_pass": len(leaks) == 0,
+        "leakage_corr_smoke_check_pass": len(leaks) == 0,
     }
     with open(ART / "online_retail_survival_metrics.json", "w") as fh:
         json.dump(metrics, fh, indent=2)

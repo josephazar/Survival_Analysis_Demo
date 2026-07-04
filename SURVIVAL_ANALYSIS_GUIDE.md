@@ -362,11 +362,15 @@ IBS = (1 / T_max) × ∫ BS(t) dt
 
 | Model | C-index (IPCW) | Mean TD-AUC | IBS |
 |-------|----------------|-------------|-----|
-| CoxPH | 0.738 | 0.769 | 0.041 |
-| CoxNet | 0.733 | 0.771 | 0.043 |
-| RSF | 0.725 | 0.755 | 0.040 |
-| GBSA | 0.721 | 0.745 | 0.044 |
-| XGBoost AFT | 0.728 | 0.762 | 0.060 |
+| CoxPH | 0.738 | 0.767 | 0.040 |
+| CoxNet (val-selected winner) | 0.733 | 0.771 | 0.042 |
+| XGBoost AFT | 0.728 | 0.764 | 0.046 |
+| GBSA | 0.722 | 0.745 | 0.043 |
+| RSF | 0.719 | 0.751 | 0.040 |
+
+(The winner is chosen on the **validation** fold — CoxNet — and reported at
+its test numbers. CoxPH edging it on test is exactly the kind of post-hoc
+selection the protocol forbids.)
 
 Both datasets converge on C-indices in the **0.72–0.76** range for honest landmark evaluations. Earlier reports of 0.89–0.99 on these datasets reflected either retrospective features (Online Retail II) or direct target leakage (Dunnhumby's `recency_ratio = duration / T_days`). The lower numbers are the right numbers.
 
@@ -380,17 +384,17 @@ A trustworthy survival model should satisfy multiple criteria. No single metric 
 
 | Criterion | What to Check | This Project |
 |-----------|---------------|--------------|
-| **Discrimination** | C-index (IPCW) > 0.70 | CoxPH (Dunnhumby landmark): 0.738; RSF (Online Retail landmark): 0.758 |
+| **Discrimination** | C-index (IPCW) > 0.70 | CoxNet (Dunnhumby, val-selected): 0.733; RSF (Online Retail landmark): 0.758 |
 | **Time-varying discrimination** | Mean TD-AUC > 0.75 | 0.77 – 0.82 across both projects |
 | **Calibration** | IBS < 0.10 for landmark models | Dunnhumby: 0.04; Online Retail: 0.13 (higher because the follow-up window is longer) |
 | **No feature leakage** | Every numeric feature has `\|corr\|` < 0.7 with the event and event-time targets | Automated assertion in `dunnhumby/tests/test_leakage_and_smoke.py` |
 | **Landmark design** | Features built strictly pre-`t0`, event time measured from `t0` forward | Both pipelines |
 | **Proper event time** | `event_time = last + W − first` or `(last + W) − t0`; censoring at study end | Both pipelines; asserted in smoke tests |
 | **Pairwise-disjoint splits** | train ∩ val = val ∩ test = train ∩ test = ∅ | Asserted in `test_clv_split_disjoint` |
-| **No test peek** | Early stopping / hyper-tuning uses validation, not test | Stage-1, Stage-5, Stage-6, Stage-7 all use val folds |
+| **No test peek** | Early stopping, hyper-tuning, Youden thresholds, and model selection all use validation, not test | Stage-1, Stage-5, Stage-6, Stage-7 all use val folds |
 | **Censoring handled** | Censored observations used, not dropped or mislabeled | IPCW-weighted metrics |
 | **Predictions monotone** | `S(t)` non-increasing per customer | Asserted |
-| **Scorecard coverage** | Every scored customer has an S(Δ) with explicit provenance | 100% coverage; `s_source` column (`cox_landmark` / `km_baseline`) |
+| **Scorecard coverage** | Every scored customer has an S(Δ) with explicit provenance — or an explicit NaN where no honest estimate exists | `s_source` column (`cox_landmark` / `km_baseline` / `none_churned`) |
 
 ### Red Flags to Watch For
 

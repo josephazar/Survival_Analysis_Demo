@@ -186,6 +186,7 @@ print("="*70)
 
 # CLV for next 6 months (180 days)
 # Using monthly discount rate of 1% (annual ~12.7%)
+start_time = time.time()
 rfm_gg['clv_6m'] = ggf.customer_lifetime_value(
     bgf,
     rfm_gg['frequency'],
@@ -196,12 +197,13 @@ rfm_gg['clv_6m'] = ggf.customer_lifetime_value(
     discount_rate=0.01,  # monthly discount rate
     freq='D'
 )
+clv_time_lifetimes = time.time() - start_time
+print(f"CLV computation time: {clv_time_lifetimes:.3f} seconds")
 
 print(f"\nCLV (6 months) distribution:")
 print(rfm_gg['clv_6m'].describe().round(2))
 
 # ─── Merge P(alive) and predicted purchases back ─────────────────────────────
-rfm_gg['p_alive'] = rfm.loc[rfm_gg.index, 'p_alive']
 rfm_gg['predicted_purchases_180d'] = rfm.loc[rfm_gg.index, 'predicted_purchases_180d']
 
 # ─── Top/Bottom customers ────────────────────────────────────────────────────
@@ -303,6 +305,7 @@ lifetimes_results = {
     'ggf_params': {k: float(v) for k, v in ggf.params_.items()},
     'fit_time_bgf': fit_time_bgf,
     'fit_time_gg': fit_time_gg,
+    'clv_time': clv_time_lifetimes,
     'validation': {
         'mae': float(mae),
         'rmse': float(rmse),

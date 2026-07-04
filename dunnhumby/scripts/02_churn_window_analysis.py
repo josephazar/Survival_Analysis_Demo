@@ -32,8 +32,12 @@ OUT.mkdir(exist_ok=True, parents=True)
 plt.rcParams["figure.dpi"] = 110
 
 
-def compute_gaps(baskets: pd.DataFrame) -> pd.Series:
+def compute_gaps(baskets: pd.DataFrame, collapse_same_day: bool = False) -> pd.Series:
     b = baskets.sort_values(["household_key", "DAY"])[["household_key", "BASKET_ID", "DAY"]].drop_duplicates(["household_key", "BASKET_ID"])
+    if collapse_same_day:
+        # Two trips on the same day are one shopping *day*; collapsing removes
+        # the 0-day gaps that pile up on the left of the CDF.
+        b = b.drop_duplicates(["household_key", "DAY"])
     b["prev_day"] = b.groupby("household_key")["DAY"].shift(1)
     b["gap"] = b["DAY"] - b["prev_day"]
     return b["gap"].dropna().astype(float)
@@ -45,8 +49,8 @@ def cdf(gaps: pd.Series, max_day: int = 120) -> tuple[np.ndarray, np.ndarray]:
     return days, cdf_vals
 
 
-def find_elbow(days: np.ndarray, cdf_vals: np.ndarray) -> tuple[int, int]:
-    """Return (kneedle_elbow, max_curvature_elbow)."""
+def find_elbow(days: np.ndarray, cdf_vals: np.ndarray) -> tuple[int, int, np.ndarray]:
+    """Return (kneedle_elbow, max_curvature_elbow, curvature_series)."""
     kl = KneeLocator(days, cdf_vals, curve="concave", direction="increasing", S=1.0)
     kneedle = int(kl.knee) if kl.knee is not None else -1
 
@@ -88,6 +92,20 @@ def main():
     days, cdf_vals = cdf(gaps, max_day=120)
     kneedle_day, max_curv_day, curvature = find_elbow(days, cdf_vals)
     print(f"[elbow] Kneedle: {kneedle_day}d   Max-curvature: {max_curv_day}d")
+    # The two detectors disagree by design: the second derivative of an
+    # empirical CDF amplifies noise and peaks on the initial 2-3 day cliff
+    # (within-week cadence), which is not a churn boundary. Kneedle's
+    # normalized distance-to-chord is the appropriate detector here.
+
+    # Sensitivity: a sizable share of raw gaps is 0 days (two baskets on one
+    # day). Collapse to shopping days and re-run the elbow to check that the
+    # zeros are not dragging the elbow left.
+    pct_zero = float((gaps == 0).mean())
+    gaps_sd = compute_gaps(baskets, collapse_same_day=True)
+    days_sd, cdf_sd = cdf(gaps_sd, max_day=120)
+    kneedle_sd, _, _ = find_elbow(days_sd, cdf_sd)
+    print(f"[sensitivity] {pct_zero * 100:.1f}% of raw gaps are 0d; with same-day baskets "
+          f"collapsed, Kneedle = {kneedle_sd}d (raw: {kneedle_day}d)")
 
     # --- CDF plot
     fig, ax = plt.subplots(figsize=(9, 5))
@@ -121,7 +139,7 @@ def main():
     print(f"\n[agreement grid]")
     print(agreement.round(3))
 
-    # Chosen window: round Kneedle to the nearest candidate, but cap minimum at 14d
+    # Chosen window: the candidate closest to the Kneedle elbow.
     chosen = min(candidate_windows, key=lambda w: abs(w - kneedle_day))
     print(f"\n[chosen window] {chosen}d (closest candidate to Kneedle={kneedle_day}d)")
 
@@ -136,6 +154,11 @@ def main():
         },
         "elbow_kneedle_day": kneedle_day,
         "elbow_max_curvature_day": max_curv_day,
+        "elbow_method_note": ("Kneedle preferred: the empirical-CDF second derivative "
+                               "amplifies noise and peaks on the 2-3d within-week cliff, "
+                               "which is cadence, not a churn boundary."),
+        "pct_zero_gaps_raw": pct_zero,
+        "elbow_kneedle_day_same_day_collapsed": kneedle_sd,
         "candidate_windows": candidate_windows,
         "event_rate_by_window": event_rate,
         "chosen_window_days": chosen,

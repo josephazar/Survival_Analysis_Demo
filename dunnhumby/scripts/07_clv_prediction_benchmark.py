@@ -1,22 +1,20 @@
-"""Stage 07 — CLV prediction benchmark (v2, review-fixed).
+"""Stage 07 — CLV prediction benchmark (ML vs BTYD).
 
-Addresses the review findings:
+Methodology guarantees:
 
-    P1 — BTYD previously fit on ALL households before the train/test split,
-         giving it population information from test rows.
-    P1 — XGBoost previously used the held-out test fold for early stopping.
+    1. Households are split FIRST (stratified by calibration-spend quartile,
+       60/15/25) — no model ever sees test households during fitting.
+    2. BTYD (BG/NBD + Gamma-Gamma) is fit ONLY on training households' RFM
+       from the calibration window; test households are scored with their
+       own RFM through the train-fitted parameters.
+    3. ML models fit on training features only; XGBoost early-stops on the
+       VALIDATION fold. The winner is picked on validation MAE; the test
+       fold is scored once, for all models.
+    4. All models' predictions are floored at 0 (spend cannot be negative)
+       — applied uniformly so no model gets asymmetric post-processing.
 
-Fixes:
-    1. Split households FIRST (stratified 70/30 by spend quartile).
-    2. Carve a validation slice from train (60/15/25 of the full dataset).
-    3. Fit BTYD (BG/NBD + Gamma-Gamma) ONLY on training households' RFM
-       data from the calibration window.
-    4. Fit ML models on training features only. XGBoost uses the
-       VALIDATION fold for early stopping. Test set is touched once at
-       final evaluation.
-
-Temporal split (unchanged): calibration DAY 1..450, holdout DAY 451..630,
-buffer 631..711.
+Temporal design: calibration DAY 1..450, holdout DAY 451..630,
+buffer 631..711 (unused, guards the holdout boundary).
 """
 from __future__ import annotations
 
@@ -38,7 +36,8 @@ from xgboost import XGBRegressor
 
 from config import ARTIFACTS_DIR, MAX_DAY, PROCESSED_DIR, RANDOM_STATE, SYNTHETIC_EPOCH
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 OUT = ARTIFACTS_DIR / "clv"
 OUT.mkdir(exist_ok=True, parents=True)
 plt.rcParams["figure.dpi"] = 110
@@ -137,9 +136,8 @@ def btyd_predict_for(baskets: pd.DataFrame, hh_set: set, bgf, ggf, cal_end: int,
         pred_avg.loc[can_score] = ggf.conditional_expected_average_profit(
             rfm.loc[can_score, "frequency"], rfm.loc[can_score, "monetary_value"]
         ).values
-    pred_spend = np.maximum((pred_txns * pred_avg).values, 0)
     return pd.DataFrame({"household_key": rfm["household_key"].values,
-                         "pred_clv_btyd": pred_spend})
+                         "pred_clv_btyd": (pred_txns * pred_avg).values})
 
 
 def evaluate(y_true, y_pred):
@@ -189,6 +187,9 @@ def main():
     btyd_test = btyd_predict_for(baskets, test_hh, bgf, ggf, CALIBRATION_END, horizon)
     test_df = test_df.merge(btyd_test, on="household_key", how="left")
     test_df["pred_clv_btyd"] = test_df["pred_clv_btyd"].fillna(0)
+    btyd_val = btyd_predict_for(baskets, val_hh, bgf, ggf, CALIBRATION_END, horizon)
+    val_df = val_df.merge(btyd_val, on="household_key", how="left")
+    val_df["pred_clv_btyd"] = val_df["pred_clv_btyd"].fillna(0)
 
     # ----- STEP 3: FIT ML ON TRAINING, VALIDATE ON VAL, TEST ONCE -----
     ml_features = [c for c in feats.columns if c != "household_key"]
@@ -202,16 +203,18 @@ def main():
     Xs_te = scaler.transform(X_test)
 
     results = {}
-    preds = {}
+    preds, val_preds = {}, {}
 
     lr = LinearRegression()
     lr.fit(Xs_tr, y_train)
     preds["LinearRegression"] = lr.predict(Xs_te)
+    val_preds["LinearRegression"] = lr.predict(Xs_va)
 
     rf = RandomForestRegressor(n_estimators=400, max_depth=12, min_samples_leaf=5,
                                 random_state=RANDOM_STATE, n_jobs=-1)
     rf.fit(X_train, y_train)
     preds["RandomForest"] = rf.predict(X_test)
+    val_preds["RandomForest"] = rf.predict(X_val)
 
     xgb = XGBRegressor(
         n_estimators=500, max_depth=5, learning_rate=0.05,
@@ -222,13 +225,21 @@ def main():
     xgb.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
     print(f"[xgb] best iter on val = {xgb.best_iteration}")
     preds["XGBoost"] = xgb.predict(X_test)
+    val_preds["XGBoost"] = xgb.predict(X_val)
 
     preds["BTYD_GG"] = test_df["pred_clv_btyd"].values
+    val_preds["BTYD_GG"] = val_df["pred_clv_btyd"].values
+
+    # Spend cannot be negative — floor every model's predictions uniformly.
+    preds = {k: np.maximum(v, 0) for k, v in preds.items()}
+    val_preds = {k: np.maximum(v, 0) for k, v in val_preds.items()}
 
     for name, p in preds.items():
         results[name] = evaluate(y_test.values, p)
+        results[name]["val_mae"] = float(mean_absolute_error(y_val.values, val_preds[name]))
         r = results[name]
-        print(f"  [{name:18s}] MAE=${r['mae']:7.2f}  RMSE=${r['rmse']:7.2f}  R²={r['r2']:6.3f}  r={r['pearson_r']:.3f}")
+        print(f"  [{name:18s}] MAE=${r['mae']:7.2f}  RMSE=${r['rmse']:7.2f}  R²={r['r2']:6.3f}  "
+              f"r={r['pearson_r']:.3f}  (val MAE=${r['val_mae']:.2f})")
 
     # --- Plot scatter ---
     n = len(preds)
@@ -265,10 +276,13 @@ def main():
             "n_val": int(len(val_df)),
             "n_test": int(len(test_df)),
             "results": results,
+            "selection_rule": "min validation MAE; test reported once",
         }, fh, indent=2)
 
-    best = min(results, key=lambda k: results[k]["mae"])
-    print(f"\n[best] {best}  (MAE ${results[best]['mae']:.2f})")
+    # Winner picked on validation MAE; its test MAE is the reported number.
+    best = min(results, key=lambda k: results[k]["val_mae"])
+    print(f"\n[best by val MAE] {best}  (val ${results[best]['val_mae']:.2f}, "
+          f"test ${results[best]['mae']:.2f})")
     print(f"[output] {PROCESSED_DIR / 'clv_benchmark.parquet'}")
 
 

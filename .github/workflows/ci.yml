@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Byte-compile all pipeline code
+        run: python -m compileall -q scripts dunnhumby btyd_analysis
+
+      - name: Import-check key libraries and pipeline config
+        run: |
+          python - <<'EOF'
+          import importlib, sys
+          for m in ["pandas", "numpy", "scipy", "lifelines", "lifetimes",
+                    "sksurv", "xgboost", "kneed", "shap",
+                    "pymc_marketing", "arviz", "nbformat"]:
+              importlib.import_module(m)
+          sys.path.insert(0, "dunnhumby/scripts")
+          import config
+          assert config.CHURN_WINDOW == 14 and config.LANDMARK_DAY == 500
+          print("imports + config OK")
+          EOF
+
+# The full pipelines and the leakage/smoke test suite need the Online Retail II
+# and Dunnhumby CSVs (not distributable in this repo), so CI stops at
+# compile/import level. Run `dunnhumby/tests/test_leakage_and_smoke.py`
+# locally after any change.

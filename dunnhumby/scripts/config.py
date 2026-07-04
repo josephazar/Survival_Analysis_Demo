@@ -2,9 +2,11 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-REPO_ROOT = ROOT.parent.parent
+# Parent of the repo clone: raw data and final deliverables live in a `data/`
+# folder NEXT TO the repository (kept out of version control by location).
+WORKSPACE_DIR = ROOT.parent.parent
 
-DATA_DIR = REPO_ROOT / "data" / "dunnhumby"
+DATA_DIR = WORKSPACE_DIR / "data" / "dunnhumby"
 PROCESSED_DIR = ROOT / "processed"
 ARTIFACTS_DIR = ROOT / "artifacts"
 

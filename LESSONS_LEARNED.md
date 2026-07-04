@@ -1,20 +1,21 @@
-# Lessons learned — customer survival analysis
+# Field guide — the traps in customer survival analysis
 
-A practical checklist distilled from two rounds of code review on the
-Online Retail II and Dunnhumby "Complete Journey" survival pipelines.
-Every item below corresponds to a mistake that was actually made in this
-repo and caught in review. Read before writing your first survival
-feature; come back to it before you report results.
+The methodology traps that come with survival modeling on transactional
+data, and how this repo's pipelines defend against each. None of these are
+hypothetical: every item was battle-tested while building the Online Retail
+II and Dunnhumby pipelines, and each defence is enforced in code or tests.
+Read before writing your first survival feature; come back before you
+report results.
 
 ---
 
 ## 1. Feature leakage — the sneakiest form kills you
 
 The textbook kind of leakage ("I accidentally used the label as a feature")
-is rare. The kind that ruined a 0.99 C-index on Dunnhumby was subtler —
-**features that share their denominator with the survival target**.
+is rare. The kind that produces a too-good-to-be-true 0.99 C-index is
+subtler — **features that share their denominator with the survival target**.
 
-### Specific traps we hit
+### Specific traps
 
 - `recency_ratio = duration / T_days` → `duration` **is** the survival
   target. You are regressing `y` on `y / constant`. C-index: 0.99.
@@ -100,21 +101,23 @@ alive = last_pre[last_pre >= t0 - window].index
 
 ## 4. Data discipline — split first, fit later, touch test once
 
-Three distinct mistakes all share the same root cause: **population-level
-information bleeds from test into training**.
+Five distinct mistakes all share the same root cause: **information bleeds
+from test into anything that gets chosen or fitted**.
 
-| Mistake | Found in | Symptom |
+| Mistake | How it sneaks in | Symptom |
 |---|---|---|
-| Fit BTYD (BG/NBD + Gamma-Gamma) on all households before the train/test split | `07_clv_prediction_benchmark.py` v1 | Population parameters `(r, α, a, b)` were tuned on test-set RFM too |
-| XGBoost `eval_set=[(X_test, y_test)]` with `early_stopping_rounds` | Stage-1 notebook, Dunnhumby v1 | Number of rounds implicitly chosen on test, giving 0.01–0.02 AUC lift |
-| Use test-set for best-alpha / best-n_estimators selection | CoxNet / GBSA first cut | Same as above |
+| Fit BTYD (BG/NBD + Gamma-Gamma) on all customers before the train/test split | "the model is population-level anyway" | Population parameters `(r, α, a, b)` tuned on test-set RFM too |
+| XGBoost `eval_set=[(X_test, y_test)]` with `early_stopping_rounds` | copy-pasted example code | Number of rounds implicitly chosen on test, worth 0.01–0.02 AUC |
+| Test-set used for best-alpha / best-n_estimators selection | "it's just one hyperparameter" | Same as above |
+| Youden classification threshold computed from the **test** ROC curve | `roc_curve(y_test, p)` reads naturally | Reported F1 is tuned on the fold it is reported on |
+| Winner-among-models picked by test metric | "the table is right there" | Small but systematic optimism; also contradicts any "test touched once" claim |
 
 ### Rule of thumb
 
 ```
 split first    → train / val / test
 fit always on  → train (for final models: train ∪ val)
-tune on        → val
+choose on      → val   (hyperparameters, early stopping, thresholds, AND the winning model)
 report once on → test
 ```
 
@@ -138,8 +141,8 @@ assert len(val_hh   & test_hh) == 0
 ```
 
 A test named `test_clv_split_disjoint` that only asserts "test set size
-is ~25%" would pass if train and test fully overlapped. That exact
-mistake slipped through round 1.
+is ~25%" would pass even if train and test fully overlapped — the name
+promises an invariant the body doesn't check.
 
 ---
 
@@ -216,13 +219,12 @@ is different from *"this is correct"*.
 If you are reporting "the fix improved AUC from 0.620 to 0.628", change
 **exactly one thing**. Otherwise the delta is unattributable.
 
-In our case, a "fixed stage-1 script" quietly dropped the product-keyword
-features, the geography dummies, the description diversity and spend
-concentration, and used a three-way date split instead of the notebook's
-single cutoff. The reported AUC delta mixed the early-stopping fix with a
-different feature set. The honest isolated fix produced a **smaller**
-delta (0.6204 → 0.6097) — in the other direction than originally
-reported.
+It is very easy for a "fixed" script to also quietly change the feature
+set, the split, or the preprocessing — and then the reported delta mixes
+the methodology fix with everything else. When we isolated a single
+early-stopping fix on an identical feature set and split, the honest delta
+turned out to be small and *negative* (0.6204 → 0.6097): removing a test
+peek usually costs you the points the peek was worth.
 
 When you publish a before/after:
 
@@ -293,29 +295,29 @@ parquet and join them only at scorecard time.
 
 ## 12. Documentation drift hides bugs
 
-A short selection of things that were written down in this repo but not
-true:
+Docs that describe the *intended* behaviour rather than the *actual*
+behaviour are worse than no docs: they make reviewers stop looking.
+The classic failure modes:
 
-- Docstring said "Population KM baseline is used to fill in customers
-  outside the landmark cohort." Implementation merged landmark outputs
-  with a left join and left 4,609 customers with `NaN`.
-- Docstring said "refit the best model on train+val before scoring
-  everyone". For four of five branches, true. For the fifth (XGBoost
-  AFT), false — it reused the train-only model.
-- Docstring said "split is `first_day <= 365`". Code used a 60th
-  percentile split.
-- README said "verified / no leakage". Actually had a 0.99 correlation
-  feature.
+- A docstring promises a fallback path ("KM baseline fills the rest")
+  that the implementation quietly skips, leaving NaNs.
+- A docstring promises "refit on train+val" and four of five model
+  branches comply — the fifth reuses the train-only model, and nobody
+  notices because that branch never wins.
+- A README's headline table is written once and never regenerated, so it
+  silently diverges from the artifacts the pipeline actually produces.
 
-The prophylaxis: write docstrings **after** the code stabilises, not
-before. If you catch yourself writing "refactored to use X" in a
-commit message, grep the code to make sure X is actually used.
+The prophylaxis: write docstrings **after** the code stabilises; treat
+every number in a README as a claim that must match a generated artifact;
+and re-read the docs whenever the code changes ("if you catch yourself
+writing 'refactored to use X' in a commit message, grep the code to make
+sure X is actually used").
 
 ---
 
 ## 13. Test-suite discipline
 
-A few anti-patterns we hit:
+Anti-patterns to watch for:
 
 - **Size checks masquerading as disjointness checks.** `len(test_df) ≈
   25% of total` passes even when `train_hh == test_hh`.
@@ -325,15 +327,22 @@ A few anti-patterns we hit:
 - **Tests that silently skip.** If your fixture file doesn't exist, don't
   just skip — fail loudly.
 
+One more subtle one: a runner whose `assert_true` helper only *prints*
+PASS/FAIL. Run it under pytest and every test is green regardless of
+failures. Either raise, or expose a single pytest entry point that
+asserts the aggregate.
+
 ### Minimum test set for a survival pipeline
 
 1. No feature has `|corr|` > 0.7 against the event or event time.
-2. `S(t)` is non-increasing per customer (monotonicity).
-3. Event/censoring time formulas are self-consistent.
-4. Splits are **pairwise disjoint**, not just sized.
-5. Scorecard has the promised coverage.
+2. Key features **recomputed from raw pre-landmark data** match the stored
+   matrix exactly (catches windowing bugs a correlation check can't).
+3. `S(t)` is non-increasing per customer (monotonicity).
+4. Event/censoring time formulas are self-consistent.
+5. Splits are **pairwise disjoint**, not just sized.
+6. Scorecard has the promised coverage.
 
-See [`dunnhumby/tests/test_leakage_and_smoke.py`](dunnhumby/tests/test_leakage_and_smoke.py) — 18 assertions, pass or the build fails.
+See [`dunnhumby/tests/test_leakage_and_smoke.py`](dunnhumby/tests/test_leakage_and_smoke.py) — 20 assertions, pass or the build fails.
 
 ---
 
@@ -356,6 +365,56 @@ Dataset-specific priors to check before you start:
 
 ---
 
+## 15. Never "validate" a churn window with a classifier
+
+If the label is `churn_w = (recency > w)`, then any recency-derived
+feature predicts it **by definition**. Train a model on such features and
+you get AUC = 1.0000 across every candidate window — a number that looks
+like validation and means nothing. Window selection must rest on the gap
+CDF (elbow detection), label stability across neighbouring windows, and
+business considerations. If a classifier metric enters the argument at
+all, recency and its derivatives must be excluded from the features — at
+which point the exercise usually stops being informative anyway.
+
+---
+
+## 16. Penalized Cox fits don't give valid p-values
+
+Ridge/elastic-net penalties bias the coefficients and invalidate the
+naive standard errors, so exporting `exp(coef)` with 95% CIs and p-values
+from a `CoxPHFitter(penalizer=0.1)` on a 50-feature matrix (with nested
+windows and near-duplicates) is statistics theatre. If you want hazard
+ratios someone can quote:
+
+1. Fit a **separate, unpenalized** Cox model on a small curated subset of
+   low-collinearity features (standardized, so HRs read "per +1 SD").
+2. **Check the proportional-hazards assumption** (Schoenfeld residuals /
+   `proportional_hazard_test`) on that model, and say so.
+3. Keep the big penalized model for **prediction only** — risk scores and
+   survival curves, no per-feature inference.
+
+Also watch for exact linear dependencies sneaking into the design matrix
+(e.g. `frequency = n_baskets - 1` with both columns kept).
+
+---
+
+## 17. BG/NBD `p_alive` can be structurally uninformative
+
+Two distinct failure modes:
+
+- **At frequency = 0**, `conditional_probability_alive` returns exactly
+  1.0 — a formula artifact, not an estimate. Mask it (NaN → a
+  "New/Unproven" tier) rather than letting one-time buyers look like your
+  healthiest customers.
+- **On dense loyal panels** (e.g. grocery, median gap 2 days), the fitted
+  dropout parameter `a` can collapse to ≈0: the model concludes nobody
+  ever dies and `p_alive` ≈ 1 for everyone. Detect it (assert on the
+  fitted `a`, look at the p_alive histogram), flag it in the artifacts,
+  and don't build risk tiers on it. An MBG/NBD variant, or the survival
+  model itself, is the right tool there.
+
+---
+
 ## Appendix — checklist before you publish results
 
 - [ ] Event time = `last + window − t0`; censoring = `study_end − t0`.
@@ -365,6 +424,10 @@ Dataset-specific priors to check before you start:
 - [ ] BTYD / population models fit on training households only.
 - [ ] Early stopping uses validation, never test.
 - [ ] Hyperparameters (alpha, n_estimators) tuned on validation, never test.
+- [ ] Classification thresholds (Youden) chosen on validation, never test.
+- [ ] Winning model selected on validation; test reported once, for all models.
+- [ ] Hazard ratios / p-values only from an unpenalized fit on a curated
+      subset, with the PH assumption checked.
 - [ ] Final scorecard model refit on train ∪ val.
 - [ ] `S(Δ)` values are conditional forward-from-landmark, not
       unconditional-from-first-purchase.

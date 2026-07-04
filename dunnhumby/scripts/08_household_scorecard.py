@@ -1,16 +1,16 @@
-"""Stage 08 — Household survival scorecard (v2, review-fixed).
+"""Stage 08 — Household survival scorecard.
 
 Consolidates the landmark survival, BTYD, and CLV outputs into a single
 per-household scorecard with honest risk tiering.
 
-Review fixes:
-    - S(t) columns now come directly from the landmark model where they
-      are measured from t0 forward (so they are already conditional on
-      "alive at t0"). No post-hoc `duration + Δ` indexing into a flat S.
+Methodology guarantees:
+    - S(t) columns come directly from the landmark model, measured from t0
+      forward — so they are already conditional on "alive at t0". No
+      post-hoc `duration + Δ` indexing into a flat survival curve.
     - S(Δ) values beyond the modelled range are capped and flagged
       (no silent extrapolation).
-    - Risk labelling explicitly uses the landmark S(Δ) rather than
-      unconditional whole-window survival.
+    - Risk labelling uses the landmark S(Δ), never unconditional
+      whole-window survival.
 
 Input files (all produced by earlier stages):
     processed/household_features_landmark.parquet
@@ -30,7 +30,7 @@ import numpy as np
 import pandas as pd
 
 from config import (ARTIFACTS_DIR, CHURN_WINDOW, LANDMARK_DAY, MAX_DAY,
-                     PROCESSED_DIR, REPO_ROOT)
+                     PROCESSED_DIR, WORKSPACE_DIR)
 
 
 def tier_risk(row):
@@ -45,9 +45,13 @@ def tier_risk(row):
         return "Churned - Loss/Winback"
     if row["not_in_survival_cohort"]:
         # These are HHs who weren't alive at the landmark (could be churned earlier
-        # or joined too late). Use BTYD p_alive as a fallback.
+        # or joined too late). Use BTYD p_alive as a fallback — with a caveat:
+        # the BG/NBD dropout parameter is near-degenerate on this dense grocery
+        # panel (a ~ 0, p_alive ~ 1 for nearly everyone; see stage-04 summary),
+        # so this fallback rarely fires below the cutoffs and the
+        # `already_churned` override above does the real work.
         if row["p_alive"] is None or np.isnan(row["p_alive"]):
-            return "Unknown"
+            return "New/Unproven"
         if row["p_alive"] < 0.4:
             return "High Risk"
         if row["p_alive"] < 0.7:
@@ -96,9 +100,14 @@ def main():
     print(f"[coverage] {int((~df['not_in_survival_cohort']).sum())} / {len(df)} households in landmark cohort")
 
     # BTYD for fallback & CLV info
-    btyd_keep = btyd[["household_key", "p_alive", "expected_txns_180d",
+    btyd_keep = btyd[["household_key", "frequency", "p_alive", "expected_txns_180d",
                       "predicted_avg_spend", "clv_180d"]]
     df = df.merge(btyd_keep, on="household_key", how="left")
+    # BG/NBD returns p_alive = 1.0 by construction at frequency 0 (a model
+    # artifact, not an estimate) — mask it so one-time households fall into
+    # "New/Unproven" rather than a fake "Low Risk".
+    df.loc[df["frequency"] == 0, "p_alive"] = np.nan
+    df = df.drop(columns=["frequency"])
 
     # CLV benchmark (test-set only)
     clv_keep = clv_bench[["household_key", "pred_XGBoost", "pred_BTYD_GG"]].rename(
@@ -135,7 +144,7 @@ def main():
     ]
     df = df[cols]
 
-    out_path = REPO_ROOT / "data" / "household_survival_scorecard.csv"
+    out_path = WORKSPACE_DIR / "data" / "household_survival_scorecard.csv"
     df.to_csv(out_path, index=False)
     print(f"[output] {out_path}  shape={df.shape}")
 

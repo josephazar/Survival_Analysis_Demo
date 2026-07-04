@@ -1,34 +1,41 @@
-"""Stage 06 — Landmark customer survival analysis (v2).
+"""Stage 06 — Landmark customer survival analysis.
 
-REWRITE. Addresses the review findings:
+Methodology guarantees:
 
-    P0 feature leakage: all features now come from Stage-03 landmark matrix
-        (built strictly from DAY <= t0).
-    P1 event-time misalignment: target is the landmark `event_time`
-        (days from t0), so event=1 customers have time = L + window - t0.
-    P1 scorecard S(t): we now compute CONDITIONAL survival
-        S(t0 + Δ | alive at t0), refit on the full training set, and cap
-        Δ to the modelled time range so there is no extrapolation.
+    - Zero feature leakage: all features come from the Stage-03 landmark
+      matrix (built strictly from DAY <= t0).
+    - Correct time axis: target is the landmark `event_time` (days from t0),
+      so event=1 households have time = last_basket + window - t0.
+    - Conditional survival: the scorecard S(t0 + Δ | alive at t0) is computed
+      from a train+val refit, with Δ capped to the modelled time range so
+      there is no extrapolation.
+    - Model selection happens on the VALIDATION fold (IPCW C-index), never on
+      test. Test metrics are reported once, for all models.
 
 Pipeline:
     1. Load landmark feature matrix + target from Stage 03.
     2. Train / validation / test split (60/20/20, event-stratified).
-       Test is locked away; validation is used for early stopping + model
-       selection. Final numbers reported on test once.
     3. PCA + KMeans (on training rows only) to segment households.
     4. Fit five survival models: CoxPH, CoxNet, RSF, GBSA, XGBoost AFT.
-    5. Evaluate on test: IPCW C-index, time-dependent AUC, integrated Brier.
-    6. Refit the best model on train+val (for scorecard scoring).
-    7. Emit per-household risk + conditional S(Δ) to processed/.
+    5. Evaluate: IPCW C-index on val (selection) and test (report),
+       time-dependent AUC, integrated Brier.
+    6. Fit a small UNPENALIZED Cox model on a curated low-collinearity
+       feature subset for hazard-ratio inference (penalized fits give biased
+       coefficients and invalid p-values), and check the proportional-hazards
+       assumption on it.
+    7. Refit the val-selected best model on train+val (for scorecard scoring).
+    8. Emit per-household risk + conditional S(Δ) to processed/.
 
 Outputs:
     processed/survival_predictions.parquet  (per-household risk + conditional S(Δ))
     artifacts/survival/
-        metrics.json                 Full test metrics for all 5 models
+        metrics.json                 Val + test metrics for all 5 models
         km_by_segment.png            Kaplan-Meier per segment
         pca_segments.png
         feature_importance.png       Permutation importance (RSF)
-        cox_hazard_ratios.csv
+        td_auc.png                   Time-dependent AUC per model
+        cox_hazard_ratios.csv        From the unpenalized inference model
+        ph_assumption_check.csv      Schoenfeld-based PH test per feature
 """
 from __future__ import annotations
 
@@ -55,7 +62,8 @@ from sksurv.util import Surv
 from config import (ARTIFACTS_DIR, CHURN_WINDOW, LANDMARK_DAY, MAX_DAY,
                      PROCESSED_DIR, RANDOM_STATE)
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 OUT = ARTIFACTS_DIR / "survival"
 OUT.mkdir(exist_ok=True, parents=True)
 plt.rcParams["figure.dpi"] = 110
@@ -65,8 +73,24 @@ plt.rcParams["figure.dpi"] = 110
 # directly encode the label (none in landmark matrix, but we double-check below).
 EXCLUDE = {"household_key", "event_time", "event_observed", "last_pre_t0", "last_overall",
            "first_day", "last_pre_day",   # raw calendar days (identifying, not predictive)
+           "frequency_pre",               # == n_baskets_pre - 1: exact linear duplicate
            "AGE_DESC", "INCOME_DESC", "HH_COMP_DESC", "HOUSEHOLD_SIZE_DESC",
            "KID_CATEGORY_DESC", "MARITAL_STATUS_CODE", "HOMEOWNER_DESC"}
+
+# Curated low-collinearity subset for hazard-ratio INFERENCE (unpenalized Cox).
+# Deliberately avoids nested windows (spend_last_30d ⊂ spend_last_90d) and
+# near-duplicates (T_pre / activity_span_pre / activity_span_ratio).
+INFERENCE_FEATURES = [
+    "days_inactive_at_t0",         # recency at the landmark
+    "median_gap_pre",              # typical shopping cadence
+    "log_total_spend_pre",         # overall monetary value (log for skew)
+    "avg_basket_lines",            # basket size
+    "avg_private_label_ratio",     # private-label affinity
+    "pct_baskets_with_coupon_pre", # coupon usage
+    "n_campaigns_pre",             # marketing exposure
+    "dept_hhi_pre",                # shopping-mission concentration
+    "spend_trend_pre_t0",          # momentum in the last 30 vs prior 30 days
+]
 
 
 def build_feature_matrix(features: pd.DataFrame):
@@ -81,17 +105,41 @@ def to_surv(y_df: pd.DataFrame) -> np.ndarray:
                             time=y_df["event_time"].astype(float).values)
 
 
-def evaluate_block(model_name, risk_train, risk_test, y_train_surv, y_test_surv,
-                   surv_fns_test, eval_times):
+def evaluate_block(risk_val, risk_test, y_train_surv, y_val_surv, y_test_surv,
+                   surv_probs_test, eval_times):
+    """Val C-index (for model selection) + test metrics (for reporting).
+
+    `surv_probs_test` is an (n_test, n_times) survival-probability matrix
+    already evaluated on `eval_times`.
+    """
+    c_val = concordance_index_ipcw(y_train_surv, y_val_surv, risk_val)[0]
     c_test = concordance_index_ipcw(y_train_surv, y_test_surv, risk_test)[0]
     td_auc_series, td_auc_mean = cumulative_dynamic_auc(y_train_surv, y_test_surv, risk_test, eval_times)
-    surv_probs = np.asarray([fn(eval_times) for fn in surv_fns_test])
-    ibs = integrated_brier_score(y_train_surv, y_test_surv, surv_probs, eval_times)
+    ibs = integrated_brier_score(y_train_surv, y_test_surv, surv_probs_test, eval_times)
     return {
+        "c_index_val_ipcw": float(c_val),
         "c_index_test_ipcw": float(c_test),
         "mean_td_auc": float(td_auc_mean),
         "ibs": float(ibs),
-    }, surv_probs
+    }, np.asarray(td_auc_series)
+
+
+def fns_to_matrix(surv_fns, eval_times):
+    return np.asarray([fn(eval_times) for fn in surv_fns])
+
+
+def aft_normal_survival_matrix(pred_times, times, sigma):
+    """Survival matrix implied by XGBoost's normal AFT model.
+
+    The fitted model is ln(T) = ln(mu) + sigma * Z with Z ~ N(0, 1), so
+    S(t) = 1 - Phi((ln t - ln mu) / sigma). Using the model's own
+    distribution keeps the IBS comparison apples-to-apples with the other
+    models' proper survival curves.
+    """
+    from scipy.stats import norm
+    mu = np.log(np.clip(np.asarray(pred_times, dtype=float), 1e-6, None))
+    z = (np.log(np.asarray(times, dtype=float))[None, :] - mu[:, None]) / sigma
+    return 1.0 - norm.cdf(z)
 
 
 def segment_on_train(X_train_scaled: np.ndarray, train_rows: pd.DataFrame, feat_cols):
@@ -192,16 +240,19 @@ def main():
     y_val_surv = to_surv(y_val)
     y_test_surv = to_surv(y_test)
 
-    # Evaluation time grid — confined to modelled range to avoid extrapolation
+    # Evaluation time grid. The bounds are the intersection of train/test
+    # observed ranges — an sksurv validity requirement for the IPCW-weighted
+    # metrics, not a tuning choice.
     t_min = int(max(y_test["event_time"].min(), y_train["event_time"].min()) + 1)
     t_max = int(min(y_test["event_time"].max(), y_train["event_time"].max()) - 1)
-    eval_times = np.linspace(t_min, t_max, 10)
-    print(f"[eval_times] {eval_times.round(1).tolist()}")
+    eval_times = np.linspace(t_min, t_max, 25)
+    print(f"[eval_times] {len(eval_times)} points in [{t_min}, {t_max}]")
 
     all_metrics = {}
     all_risk_test = {}
+    all_td_auc = {}
 
-    # 1. Cox PH (lifelines) — train only, validate only for reporting consistency
+    # 1. Cox PH (lifelines)
     print("\n[1/5] CoxPH (lifelines)")
     cph_df_train = pd.concat([
         pd.DataFrame(Xtr, columns=feat_cols, index=idx_train),
@@ -209,24 +260,17 @@ def main():
     ], axis=1)
     cph = CoxPHFitter(penalizer=0.1)
     cph.fit(cph_df_train, duration_col="event_time", event_col="event_observed", show_progress=False)
-    risk_tr = cph.predict_partial_hazard(pd.DataFrame(Xtr, columns=feat_cols)).values.ravel()
+    risk_va = cph.predict_partial_hazard(pd.DataFrame(Xva, columns=feat_cols)).values.ravel()
     risk_te = cph.predict_partial_hazard(pd.DataFrame(Xte, columns=feat_cols)).values.ravel()
-    surv_df = cph.predict_survival_function(pd.DataFrame(Xte, columns=feat_cols), times=eval_times)
-    surv_probs_cox = surv_df.values.T
-
-    def make_fn(row, times):
-        def fn(t):
-            return np.interp(t, times, row)
-        return fn
-    surv_fns_cox = [make_fn(r, eval_times) for r in surv_probs_cox]
-    all_metrics["CoxPH"], _ = evaluate_block("CoxPH", risk_tr, risk_te, y_train_surv, y_test_surv, surv_fns_cox, eval_times)
+    surv_probs_cox = cph.predict_survival_function(
+        pd.DataFrame(Xte, columns=feat_cols), times=eval_times).values.T
+    all_metrics["CoxPH"], all_td_auc["CoxPH"] = evaluate_block(
+        risk_va, risk_te, y_train_surv, y_val_surv, y_test_surv, surv_probs_cox, eval_times)
     all_risk_test["CoxPH"] = risk_te
-    hr = cph.summary[["exp(coef)", "exp(coef) lower 95%", "exp(coef) upper 95%", "p"]].sort_values("exp(coef)", ascending=False)
-    hr.to_csv(OUT / "cox_hazard_ratios.csv")
 
     # 2. CoxNet
     print("[2/5] CoxNet (elastic net)")
-    coxnet = CoxnetSurvivalAnalysis(l1_ratio=0.5, alpha_min_ratio=0.01, max_iter=500,
+    coxnet = CoxnetSurvivalAnalysis(l1_ratio=0.5, alpha_min_ratio=0.01, max_iter=5000,
                                     fit_baseline_model=True)
     coxnet.fit(Xtr, y_train_surv)
     # Pick alpha via validation C-index
@@ -236,10 +280,11 @@ def main():
         val_c.append(concordance_index_ipcw(y_train_surv, y_val_surv, r)[0])
     best_alpha = coxnet.alphas_[int(np.argmax(val_c))]
     print(f"       selected alpha={best_alpha:.4f} (val C-index={max(val_c):.4f})")
-    risk_tr = coxnet.predict(Xtr, alpha=best_alpha)
+    risk_va = coxnet.predict(Xva, alpha=best_alpha)
     risk_te = coxnet.predict(Xte, alpha=best_alpha)
-    surv_fns = coxnet.predict_survival_function(Xte, alpha=best_alpha)
-    all_metrics["CoxNet"], _ = evaluate_block("CoxNet", risk_tr, risk_te, y_train_surv, y_test_surv, surv_fns, eval_times)
+    surv_probs = fns_to_matrix(coxnet.predict_survival_function(Xte, alpha=best_alpha), eval_times)
+    all_metrics["CoxNet"], all_td_auc["CoxNet"] = evaluate_block(
+        risk_va, risk_te, y_train_surv, y_val_surv, y_test_surv, surv_probs, eval_times)
     all_risk_test["CoxNet"] = risk_te
 
     # 3. RSF
@@ -247,10 +292,11 @@ def main():
     rsf = RandomSurvivalForest(n_estimators=300, max_depth=10, min_samples_leaf=10,
                                 n_jobs=-1, random_state=RANDOM_STATE)
     rsf.fit(Xtr, y_train_surv)
-    risk_tr = rsf.predict(Xtr)
+    risk_va = rsf.predict(Xva)
     risk_te = rsf.predict(Xte)
-    surv_fns = rsf.predict_survival_function(Xte)
-    all_metrics["RSF"], _ = evaluate_block("RSF", risk_tr, risk_te, y_train_surv, y_test_surv, surv_fns, eval_times)
+    surv_probs = fns_to_matrix(rsf.predict_survival_function(Xte), eval_times)
+    all_metrics["RSF"], all_td_auc["RSF"] = evaluate_block(
+        risk_va, risk_te, y_train_surv, y_val_surv, y_test_surv, surv_probs, eval_times)
     all_risk_test["RSF"] = risk_te
     try:
         pi = permutation_importance(rsf, Xte, y_test_surv, n_repeats=3, random_state=RANDOM_STATE, n_jobs=-1)
@@ -275,11 +321,12 @@ def main():
         if val_score > best_val:
             best_val = val_score
             best_gbs = gbs
-    risk_tr = best_gbs.predict(Xtr)
+    risk_va = best_gbs.predict(Xva)
     risk_te = best_gbs.predict(Xte)
-    surv_fns = best_gbs.predict_survival_function(Xte)
+    surv_probs = fns_to_matrix(best_gbs.predict_survival_function(Xte), eval_times)
     print(f"       best n_est={best_gbs.n_estimators}  val C-index={best_val:.4f}")
-    all_metrics["GBSA"], _ = evaluate_block("GBSA", risk_tr, risk_te, y_train_surv, y_test_surv, surv_fns, eval_times)
+    all_metrics["GBSA"], all_td_auc["GBSA"] = evaluate_block(
+        risk_va, risk_te, y_train_surv, y_val_surv, y_test_surv, surv_probs, eval_times)
     all_risk_test["GBSA"] = risk_te
 
     # 5. XGBoost AFT with validation set for early stopping
@@ -305,29 +352,76 @@ def main():
     bst = xgb.train(params, dtr, num_boost_round=500,
                      evals=[(dva, "val")],
                      early_stopping_rounds=30, verbose_eval=False)
-    pred_time_tr = bst.predict(dtr)
+    pred_time_va = bst.predict(dva)
     pred_time_te = bst.predict(dte)
-    risk_tr = -pred_time_tr
+    risk_va = -pred_time_va
     risk_te = -pred_time_te
-    scales = np.clip(pred_time_te, 1.0, None)
-
-    def make_xgb_fn(scale):
-        def fn(t):
-            return np.exp(-t / scale)
-        return fn
-    surv_fns_xgb = [make_xgb_fn(s) for s in scales]
+    # Survival curves from the model's own fitted distribution (normal AFT on
+    # log-time), not an ad-hoc exponential — see aft_normal_survival_matrix.
+    surv_probs = aft_normal_survival_matrix(pred_time_te, eval_times,
+                                             params["aft_loss_distribution_scale"])
     print(f"       best iter = {bst.best_iteration}")
-    all_metrics["XGBoost_AFT"], _ = evaluate_block("XGBoost_AFT", risk_tr, risk_te,
-                                                    y_train_surv, y_test_surv, surv_fns_xgb, eval_times)
+    all_metrics["XGBoost_AFT"], all_td_auc["XGBoost_AFT"] = evaluate_block(
+        risk_va, risk_te, y_train_surv, y_val_surv, y_test_surv, surv_probs, eval_times)
     all_risk_test["XGBoost_AFT"] = risk_te
 
     # --- Report ----------------------------------------------------------------
-    print("\n[test metrics]")
+    print("\n[metrics]  (val C-index selects; test C-index reports)")
     for name, m in all_metrics.items():
-        print(f"  {name:15s}  C-index(IPCW)={m['c_index_test_ipcw']:.4f}  TD-AUC={m['mean_td_auc']:.4f}  IBS={m['ibs']:.4f}")
+        print(f"  {name:15s}  C-val={m['c_index_val_ipcw']:.4f}  C-test={m['c_index_test_ipcw']:.4f}  "
+              f"TD-AUC={m['mean_td_auc']:.4f}  IBS={m['ibs']:.4f}")
 
-    best_model = max(all_metrics, key=lambda k: all_metrics[k]["c_index_test_ipcw"])
-    print(f"\n[best model] {best_model}")
+    # Winner picked on VALIDATION; its test numbers are the reported ones.
+    best_model = max(all_metrics, key=lambda k: all_metrics[k]["c_index_val_ipcw"])
+    print(f"\n[best model by val C-index] {best_model} "
+          f"(val={all_metrics[best_model]['c_index_val_ipcw']:.4f}, "
+          f"test={all_metrics[best_model]['c_index_test_ipcw']:.4f})")
+
+    # Time-dependent AUC per model (test)
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for name, series in all_td_auc.items():
+        ax.plot(eval_times, series, marker="o", ms=3, label=name)
+    ax.set_xlabel(f"Days from landmark t0 = {LANDMARK_DAY}")
+    ax.set_ylabel("Time-dependent AUC")
+    ax.set_title("Cumulative/dynamic AUC on test")
+    ax.legend(); ax.grid(alpha=0.3)
+    fig.tight_layout(); fig.savefig(OUT / "td_auc.png"); plt.close(fig)
+
+    # --- Hazard-ratio inference (unpenalized Cox, curated subset) --------------
+    # The 50+-feature model above is penalized (ridge), so its standard errors
+    # and p-values are not valid, and the full matrix contains nested/derived
+    # columns. For interpretation we fit a small unpenalized model on
+    # low-collinearity features, standardized so HRs read "per +1 SD",
+    # and check the proportional-hazards assumption on it.
+    print("\n[inference] unpenalized Cox on curated subset (train fold)")
+    from lifelines.statistics import proportional_hazard_test
+    inf_df = rows.loc[idx_train, ["event_time", "event_observed"]].copy()
+    inf_src = rows.loc[idx_train]
+    for c in INFERENCE_FEATURES:
+        inf_df[c] = (np.log1p(inf_src["total_spend_pre"])
+                     if c == "log_total_spend_pre" else inf_src[c])
+    inf_df[INFERENCE_FEATURES] = inf_df[INFERENCE_FEATURES].fillna(
+        inf_df[INFERENCE_FEATURES].median())
+    for c in INFERENCE_FEATURES:
+        sd = inf_df[c].std()
+        inf_df[c] = (inf_df[c] - inf_df[c].mean()) / (sd if sd > 0 else 1.0)
+
+    cph_inf = CoxPHFitter()  # no penalizer: valid Wald CIs / p-values
+    cph_inf.fit(inf_df, duration_col="event_time", event_col="event_observed")
+    hr = (cph_inf.summary[["exp(coef)", "exp(coef) lower 95%", "exp(coef) upper 95%", "p"]]
+                 .sort_values("exp(coef)", ascending=False))
+    hr.index.name = "feature (HR per +1 SD)"
+    hr.to_csv(OUT / "cox_hazard_ratios.csv")
+    print(hr.round(4).to_string())
+
+    ph = proportional_hazard_test(cph_inf, inf_df, time_transform="rank").summary
+    ph.to_csv(OUT / "ph_assumption_check.csv")
+    ph_violations = ph.index[ph["p"] < 0.05].tolist()
+    print(f"[PH check] features violating proportional hazards at p<0.05: "
+          f"{ph_violations if ph_violations else 'none'}")
+    if ph_violations:
+        print("           -> their HRs are averages over follow-up, not constants; "
+              "ranking metrics (C-index/TD-AUC) are unaffected.")
 
     with open(OUT / "metrics.json", "w") as fh:
         json.dump({
@@ -342,6 +436,11 @@ def main():
             "eval_times": eval_times.tolist(),
             "test_metrics": all_metrics,
             "best_model": best_model,
+            "selection_rule": "max validation IPCW C-index; test reported once",
+            "hr_inference_note": ("cox_hazard_ratios.csv comes from an unpenalized "
+                                   "Cox fit on the curated INFERENCE_FEATURES subset "
+                                   "(penalized fits give biased SEs/p-values)"),
+            "ph_violations_p_lt_0.05": ph_violations,
         }, fh, indent=2)
 
     # --- Refit best model on train+val for scorecard scoring --------------------
@@ -363,10 +462,14 @@ def main():
         risk_all = final.predict_partial_hazard(pd.DataFrame(X_all_scaled, columns=feat_cols)).values.ravel()
         surv_final = final.predict_survival_function(pd.DataFrame(X_all_scaled, columns=feat_cols), times=eval_times).values.T
     elif best_model == "CoxNet":
-        final = CoxnetSurvivalAnalysis(l1_ratio=0.5, alpha_min_ratio=0.01, max_iter=500, fit_baseline_model=True)
+        # Refit at exactly the val-selected alpha: a fresh path fit on
+        # train+val would compute a different alphas_ grid that need not
+        # contain best_alpha.
+        final = CoxnetSurvivalAnalysis(l1_ratio=0.5, alphas=[best_alpha], max_iter=5000,
+                                        fit_baseline_model=True)
         final.fit(Xfit, y_fit_surv)
-        risk_all = final.predict(X_all_scaled, alpha=best_alpha)
-        surv_fns_all = final.predict_survival_function(X_all_scaled, alpha=best_alpha)
+        risk_all = final.predict(X_all_scaled)
+        surv_fns_all = final.predict_survival_function(X_all_scaled)
         surv_final = np.asarray([fn(eval_times) for fn in surv_fns_all])
     elif best_model == "RSF":
         final = RandomSurvivalForest(n_estimators=300, max_depth=10, min_samples_leaf=10,
@@ -396,8 +499,8 @@ def main():
         dall = xgb.DMatrix(X_all_scaled)
         pred_times = final_bst.predict(dall)
         risk_all = -pred_times
-        scales_all = np.clip(pred_times, 1.0, None)
-        surv_final = np.exp(-eval_times[None, :] / scales_all[:, None])
+        surv_final = aft_normal_survival_matrix(pred_times, eval_times,
+                                                 params["aft_loss_distribution_scale"])
         print(f"       [xgb refit] n_rounds = {n_rounds} on train+val ({len(idx_fit)} rows)")
 
     # --- Conditional future survival at +30, +60, +90, +180 days from LANDMARK --
