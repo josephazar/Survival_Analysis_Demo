@@ -1,0 +1,901 @@
+user_id,onboarding_path,signup_device,team_size,invited_teammates,first_week_actions,time_to_activation_days,activated_observed,followup_days
+U0001,Guided Setup,Desktop,department,4,6,5,1,41
+U0002,Guided Setup,Mobile,small_team,1,2,30,0,30
+U0003,Self Serve,Mobile,solo,0,2,1,1,28
+U0004,Self Serve,Mobile,solo,0,1,10,1,45
+U0005,Self Serve,Mobile,solo,0,3,12,1,36
+U0006,Guided Setup,Mobile,solo,1,5,33,1,41
+U0007,Guided Setup,Desktop,solo,0,4,6,1,30
+U0008,Guided Setup,Mobile,solo,1,4,31,0,31
+U0009,Self Serve,Desktop,small_team,5,7,4,1,35
+U0010,Self Serve,Mobile,small_team,0,3,1,1,32
+U0011,Guided Setup,Desktop,small_team,2,5,28,1,35
+U0012,Concierge,Desktop,solo,0,7,3,1,44
+U0013,Guided Setup,Mobile,department,7,6,4,1,32
+U0014,Guided Setup,Desktop,small_team,4,3,2,1,32
+U0015,Self Serve,Mobile,solo,0,3,8,1,37
+U0016,Self Serve,Mobile,solo,0,0,37,0,37
+U0017,Guided Setup,Mobile,solo,1,11,1,1,34
+U0018,Guided Setup,Mobile,solo,0,3,7,1,33
+U0019,Self Serve,Desktop,small_team,2,5,16,1,45
+U0020,Self Serve,Mobile,small_team,0,0,24,1,32
+U0021,Self Serve,Desktop,solo,0,3,13,1,44
+U0022,Guided Setup,Mobile,solo,0,4,13,1,34
+U0023,Self Serve,Desktop,department,6,4,4,1,29
+U0024,Self Serve,Desktop,solo,0,3,18,1,43
+U0025,Self Serve,Desktop,department,6,6,2,1,37
+U0026,Self Serve,Desktop,small_team,3,6,6,1,33
+U0027,Self Serve,Mobile,small_team,3,6,40,0,40
+U0028,Guided Setup,Mobile,small_team,2,4,25,1,39
+U0029,Guided Setup,Desktop,small_team,2,5,21,1,36
+U0030,Guided Setup,Mobile,solo,1,9,21,1,39
+U0031,Self Serve,Desktop,solo,2,4,2,1,34
+U0032,Self Serve,Desktop,small_team,1,4,5,1,29
+U0033,Self Serve,Desktop,solo,1,8,5,1,43
+U0034,Self Serve,Desktop,solo,0,3,9,1,41
+U0035,Guided Setup,Mobile,small_team,2,5,13,1,35
+U0036,Self Serve,Desktop,solo,1,5,5,1,36
+U0037,Self Serve,Mobile,small_team,1,2,17,1,43
+U0038,Self Serve,Desktop,small_team,1,3,12,1,35
+U0039,Self Serve,Desktop,solo,0,3,23,1,40
+U0040,Self Serve,Mobile,solo,3,5,32,0,32
+U0041,Self Serve,Mobile,small_team,1,5,17,1,34
+U0042,Self Serve,Desktop,department,5,4,18,1,36
+U0043,Guided Setup,Mobile,solo,0,5,5,1,33
+U0044,Self Serve,Desktop,solo,0,1,1,1,28
+U0045,Guided Setup,Desktop,small_team,2,6,1,1,32
+U0046,Guided Setup,Mobile,department,4,4,7,1,42
+U0047,Self Serve,Desktop,solo,1,4,12,1,29
+U0048,Self Serve,Mobile,small_team,3,5,36,0,36
+U0049,Guided Setup,Desktop,solo,0,7,4,1,43
+U0050,Guided Setup,Desktop,solo,0,5,26,1,36
+U0051,Concierge,Desktop,small_team,4,9,11,1,43
+U0052,Self Serve,Mobile,solo,0,0,23,1,36
+U0053,Self Serve,Desktop,small_team,1,3,8,1,38
+U0054,Guided Setup,Mobile,solo,0,2,29,1,33
+U0055,Self Serve,Desktop,solo,0,3,8,1,28
+U0056,Self Serve,Desktop,small_team,2,4,4,1,36
+U0057,Self Serve,Desktop,solo,1,4,35,0,35
+U0058,Self Serve,Desktop,solo,0,4,29,0,29
+U0059,Self Serve,Mobile,small_team,4,1,1,1,45
+U0060,Concierge,Desktop,small_team,1,8,6,1,41
+U0061,Concierge,Mobile,small_team,1,6,6,1,28
+U0062,Self Serve,Mobile,department,7,6,1,1,34
+U0063,Guided Setup,Mobile,solo,1,2,32,0,32
+U0064,Concierge,Desktop,solo,0,7,10,1,43
+U0065,Self Serve,Desktop,small_team,3,4,4,1,38
+U0066,Self Serve,Desktop,solo,0,3,22,1,32
+U0067,Guided Setup,Mobile,small_team,3,4,6,1,43
+U0068,Self Serve,Mobile,solo,0,5,9,1,29
+U0069,Self Serve,Mobile,solo,0,3,21,1,30
+U0070,Self Serve,Mobile,small_team,1,3,8,1,42
+U0071,Concierge,Desktop,solo,1,11,1,1,37
+U0072,Concierge,Desktop,solo,0,7,2,1,42
+U0073,Guided Setup,Desktop,small_team,4,4,1,1,40
+U0074,Guided Setup,Mobile,small_team,2,7,2,1,32
+U0075,Self Serve,Desktop,department,3,4,12,1,40
+U0076,Self Serve,Mobile,small_team,2,4,23,1,44
+U0077,Self Serve,Desktop,solo,0,5,28,0,28
+U0078,Self Serve,Desktop,solo,0,6,25,1,33
+U0079,Concierge,Desktop,small_team,2,9,2,1,30
+U0080,Concierge,Desktop,solo,0,4,3,1,44
+U0081,Self Serve,Desktop,small_team,3,6,28,0,28
+U0082,Self Serve,Mobile,small_team,3,2,7,1,30
+U0083,Guided Setup,Mobile,solo,1,6,17,1,35
+U0084,Guided Setup,Desktop,small_team,4,3,20,1,39
+U0085,Self Serve,Desktop,small_team,2,2,4,1,40
+U0086,Guided Setup,Desktop,solo,0,1,24,1,31
+U0087,Self Serve,Desktop,department,8,2,10,1,31
+U0088,Guided Setup,Desktop,solo,0,7,6,1,44
+U0089,Self Serve,Mobile,solo,0,1,31,0,31
+U0090,Concierge,Desktop,solo,0,3,10,1,44
+U0091,Self Serve,Mobile,small_team,1,1,28,1,44
+U0092,Concierge,Desktop,small_team,5,8,1,1,44
+U0093,Concierge,Desktop,department,6,8,2,1,44
+U0094,Concierge,Desktop,department,9,12,1,1,28
+U0095,Self Serve,Mobile,small_team,1,1,31,0,31
+U0096,Guided Setup,Mobile,solo,1,4,20,1,33
+U0097,Guided Setup,Desktop,solo,1,6,9,1,39
+U0098,Self Serve,Desktop,solo,0,3,5,1,32
+U0099,Self Serve,Mobile,solo,1,3,35,0,35
+U0100,Self Serve,Desktop,solo,0,3,9,1,44
+U0101,Guided Setup,Desktop,solo,0,3,4,1,37
+U0102,Self Serve,Desktop,small_team,2,6,16,1,37
+U0103,Self Serve,Desktop,small_team,2,2,14,1,38
+U0104,Self Serve,Mobile,small_team,4,5,3,1,37
+U0105,Guided Setup,Desktop,solo,1,2,1,1,29
+U0106,Guided Setup,Mobile,small_team,5,11,7,1,28
+U0107,Guided Setup,Desktop,solo,0,11,9,1,33
+U0108,Self Serve,Desktop,department,3,4,21,1,36
+U0109,Self Serve,Mobile,solo,0,3,12,1,43
+U0110,Guided Setup,Mobile,solo,1,6,15,1,33
+U0111,Concierge,Mobile,small_team,0,9,3,1,32
+U0112,Guided Setup,Desktop,small_team,1,3,26,1,31
+U0113,Guided Setup,Desktop,small_team,4,7,1,1,35
+U0114,Concierge,Desktop,solo,1,4,2,1,44
+U0115,Guided Setup,Desktop,solo,1,4,3,1,30
+U0116,Self Serve,Mobile,small_team,3,3,5,1,45
+U0117,Self Serve,Desktop,department,5,3,19,1,43
+U0118,Self Serve,Desktop,solo,0,3,21,1,35
+U0119,Concierge,Desktop,solo,0,8,5,1,36
+U0120,Concierge,Desktop,solo,0,8,8,1,31
+U0121,Guided Setup,Desktop,small_team,2,9,7,1,40
+U0122,Concierge,Desktop,small_team,4,10,2,1,31
+U0123,Self Serve,Desktop,solo,0,1,30,1,42
+U0124,Self Serve,Desktop,solo,1,2,17,1,37
+U0125,Concierge,Desktop,solo,1,6,13,1,31
+U0126,Self Serve,Desktop,solo,1,5,4,1,29
+U0127,Self Serve,Desktop,solo,2,2,7,1,29
+U0128,Self Serve,Mobile,small_team,3,3,7,1,36
+U0129,Self Serve,Desktop,small_team,1,2,11,1,28
+U0130,Guided Setup,Mobile,small_team,3,9,11,1,36
+U0131,Self Serve,Desktop,solo,0,3,18,1,29
+U0132,Self Serve,Mobile,small_team,2,4,5,1,33
+U0133,Guided Setup,Desktop,small_team,6,9,5,1,44
+U0134,Self Serve,Mobile,solo,1,4,11,1,43
+U0135,Self Serve,Mobile,solo,2,2,21,1,28
+U0136,Concierge,Desktop,solo,0,5,1,1,43
+U0137,Guided Setup,Desktop,department,7,12,2,1,44
+U0138,Self Serve,Desktop,small_team,2,2,29,1,45
+U0139,Self Serve,Desktop,small_team,3,6,11,1,34
+U0140,Self Serve,Desktop,department,10,10,3,1,42
+U0141,Guided Setup,Desktop,solo,1,5,4,1,45
+U0142,Concierge,Mobile,department,8,11,2,1,30
+U0143,Concierge,Desktop,small_team,3,10,4,1,34
+U0144,Self Serve,Desktop,small_team,3,2,9,1,28
+U0145,Self Serve,Mobile,small_team,3,1,1,1,37
+U0146,Concierge,Mobile,department,5,8,2,1,36
+U0147,Guided Setup,Desktop,small_team,1,5,5,1,32
+U0148,Guided Setup,Desktop,solo,1,5,6,1,40
+U0149,Self Serve,Mobile,solo,0,1,9,1,34
+U0150,Concierge,Desktop,solo,0,7,3,1,32
+U0151,Concierge,Mobile,solo,0,5,3,1,42
+U0152,Self Serve,Desktop,small_team,2,3,28,1,40
+U0153,Guided Setup,Desktop,small_team,1,8,2,1,40
+U0154,Guided Setup,Desktop,small_team,1,7,10,1,30
+U0155,Concierge,Desktop,small_team,2,7,5,1,36
+U0156,Self Serve,Desktop,solo,3,9,21,1,32
+U0157,Self Serve,Desktop,small_team,2,7,4,1,41
+U0158,Guided Setup,Desktop,small_team,1,4,14,1,44
+U0159,Guided Setup,Desktop,solo,0,9,4,1,36
+U0160,Self Serve,Desktop,small_team,4,4,13,1,33
+U0161,Guided Setup,Desktop,solo,0,8,6,1,43
+U0162,Concierge,Mobile,small_team,2,8,11,1,41
+U0163,Concierge,Desktop,department,7,9,2,1,45
+U0164,Self Serve,Desktop,small_team,3,3,2,1,37
+U0165,Guided Setup,Mobile,small_team,2,4,17,1,35
+U0166,Guided Setup,Desktop,small_team,4,10,1,1,44
+U0167,Guided Setup,Mobile,department,2,4,33,0,33
+U0168,Self Serve,Desktop,solo,0,2,3,1,34
+U0169,Self Serve,Desktop,small_team,2,9,7,1,45
+U0170,Self Serve,Desktop,department,8,12,9,1,28
+U0171,Self Serve,Mobile,department,3,0,18,1,30
+U0172,Guided Setup,Desktop,small_team,2,7,9,1,40
+U0173,Self Serve,Desktop,small_team,4,4,7,1,37
+U0174,Guided Setup,Desktop,solo,0,4,9,1,40
+U0175,Guided Setup,Desktop,solo,0,10,6,1,40
+U0176,Self Serve,Desktop,solo,0,1,17,1,44
+U0177,Guided Setup,Desktop,small_team,3,7,9,1,37
+U0178,Concierge,Desktop,small_team,2,8,3,1,34
+U0179,Self Serve,Mobile,department,6,7,14,1,29
+U0180,Guided Setup,Mobile,small_team,2,4,33,1,39
+U0181,Self Serve,Mobile,solo,0,1,14,1,33
+U0182,Self Serve,Desktop,solo,1,2,36,1,37
+U0183,Self Serve,Desktop,solo,0,8,6,1,29
+U0184,Self Serve,Mobile,solo,1,3,4,1,30
+U0185,Self Serve,Desktop,solo,0,3,4,1,43
+U0186,Guided Setup,Desktop,solo,1,9,5,1,31
+U0187,Self Serve,Desktop,small_team,2,5,8,1,42
+U0188,Concierge,Desktop,small_team,0,13,2,1,45
+U0189,Concierge,Desktop,department,3,7,2,1,32
+U0190,Guided Setup,Mobile,small_team,4,6,41,1,44
+U0191,Self Serve,Desktop,small_team,2,4,11,1,35
+U0192,Guided Setup,Mobile,small_team,2,8,7,1,36
+U0193,Self Serve,Desktop,small_team,1,2,1,1,42
+U0194,Self Serve,Desktop,solo,2,2,9,1,28
+U0195,Self Serve,Mobile,solo,0,0,6,1,30
+U0196,Self Serve,Desktop,solo,1,5,10,1,44
+U0197,Guided Setup,Desktop,small_team,1,2,13,1,41
+U0198,Self Serve,Desktop,small_team,4,7,11,1,29
+U0199,Self Serve,Desktop,small_team,1,2,25,1,42
+U0200,Self Serve,Desktop,small_team,5,4,26,1,40
+U0201,Guided Setup,Mobile,solo,0,4,19,1,32
+U0202,Self Serve,Desktop,solo,0,4,4,1,41
+U0203,Concierge,Desktop,solo,0,4,4,1,31
+U0204,Self Serve,Desktop,small_team,0,5,5,1,32
+U0205,Self Serve,Desktop,solo,0,1,12,1,30
+U0206,Self Serve,Desktop,small_team,1,3,28,1,28
+U0207,Self Serve,Desktop,small_team,1,0,22,1,33
+U0208,Self Serve,Desktop,small_team,5,2,1,1,41
+U0209,Self Serve,Mobile,small_team,0,4,8,1,28
+U0210,Self Serve,Desktop,small_team,2,3,20,1,39
+U0211,Self Serve,Mobile,small_team,2,3,31,1,35
+U0212,Concierge,Desktop,solo,0,8,4,1,30
+U0213,Guided Setup,Desktop,solo,0,6,25,1,31
+U0214,Self Serve,Desktop,solo,2,2,3,1,33
+U0215,Self Serve,Desktop,small_team,4,8,9,1,38
+U0216,Concierge,Desktop,small_team,1,7,2,1,37
+U0217,Guided Setup,Desktop,solo,0,2,10,1,28
+U0218,Guided Setup,Desktop,solo,0,4,2,1,41
+U0219,Concierge,Mobile,small_team,1,9,5,1,43
+U0220,Guided Setup,Mobile,solo,1,1,40,0,40
+U0221,Guided Setup,Desktop,department,4,8,2,1,41
+U0222,Guided Setup,Desktop,small_team,0,5,13,1,34
+U0223,Self Serve,Desktop,solo,1,5,3,1,35
+U0224,Self Serve,Mobile,small_team,1,0,33,1,39
+U0225,Self Serve,Desktop,solo,2,9,15,1,31
+U0226,Self Serve,Desktop,department,8,7,12,1,35
+U0227,Concierge,Desktop,small_team,3,7,5,1,34
+U0228,Concierge,Desktop,small_team,1,6,1,1,43
+U0229,Concierge,Desktop,small_team,2,11,4,1,34
+U0230,Self Serve,Mobile,small_team,2,3,1,1,30
+U0231,Guided Setup,Desktop,solo,1,8,2,1,43
+U0232,Self Serve,Desktop,small_team,0,5,11,1,32
+U0233,Self Serve,Desktop,solo,0,3,16,1,34
+U0234,Guided Setup,Desktop,solo,0,5,3,1,29
+U0235,Self Serve,Mobile,small_team,3,7,5,1,41
+U0236,Self Serve,Desktop,small_team,5,3,10,1,28
+U0237,Self Serve,Desktop,small_team,3,12,4,1,36
+U0238,Self Serve,Mobile,small_team,4,4,11,1,39
+U0239,Guided Setup,Desktop,department,7,9,1,1,43
+U0240,Self Serve,Mobile,small_team,2,4,9,1,42
+U0241,Self Serve,Mobile,solo,0,0,28,1,41
+U0242,Guided Setup,Desktop,department,3,3,7,1,31
+U0243,Self Serve,Mobile,small_team,2,4,38,0,38
+U0244,Guided Setup,Desktop,solo,0,6,8,1,34
+U0245,Self Serve,Mobile,small_team,1,2,15,1,35
+U0246,Guided Setup,Mobile,solo,1,4,8,1,29
+U0247,Self Serve,Desktop,solo,0,4,3,1,45
+U0248,Guided Setup,Desktop,department,7,10,9,1,31
+U0249,Self Serve,Mobile,small_team,2,3,20,1,30
+U0250,Guided Setup,Mobile,solo,2,8,17,1,42
+U0251,Guided Setup,Mobile,solo,0,8,2,1,29
+U0252,Guided Setup,Desktop,solo,0,13,1,1,28
+U0253,Guided Setup,Mobile,small_team,0,6,3,1,31
+U0254,Concierge,Mobile,small_team,4,7,10,1,37
+U0255,Self Serve,Mobile,solo,1,1,7,1,44
+U0256,Self Serve,Desktop,small_team,2,2,10,1,34
+U0257,Concierge,Desktop,solo,0,7,10,1,34
+U0258,Concierge,Desktop,solo,0,7,6,1,33
+U0259,Self Serve,Mobile,small_team,2,4,11,1,44
+U0260,Concierge,Desktop,small_team,3,6,2,1,37
+U0261,Guided Setup,Desktop,small_team,4,6,1,1,31
+U0262,Self Serve,Mobile,solo,0,3,37,0,37
+U0263,Self Serve,Desktop,solo,0,3,5,1,29
+U0264,Guided Setup,Desktop,solo,0,8,14,1,42
+U0265,Guided Setup,Mobile,small_team,1,5,3,1,30
+U0266,Self Serve,Desktop,solo,0,3,7,1,36
+U0267,Self Serve,Mobile,solo,0,4,31,1,34
+U0268,Guided Setup,Mobile,solo,0,9,6,1,31
+U0269,Self Serve,Mobile,solo,1,3,2,1,36
+U0270,Concierge,Mobile,solo,0,7,12,1,28
+U0271,Self Serve,Desktop,solo,0,4,40,1,41
+U0272,Self Serve,Desktop,department,4,5,35,1,38
+U0273,Concierge,Desktop,solo,1,8,7,1,32
+U0274,Guided Setup,Desktop,solo,1,9,4,1,31
+U0275,Self Serve,Desktop,small_team,2,1,7,1,29
+U0276,Self Serve,Mobile,small_team,0,2,41,0,41
+U0277,Self Serve,Mobile,small_team,3,1,41,0,41
+U0278,Self Serve,Mobile,solo,1,1,5,1,34
+U0279,Self Serve,Desktop,department,6,9,2,1,36
+U0280,Concierge,Mobile,solo,0,5,6,1,42
+U0281,Self Serve,Desktop,small_team,1,3,17,1,30
+U0282,Self Serve,Desktop,department,9,8,7,1,41
+U0283,Guided Setup,Desktop,department,5,9,3,1,29
+U0284,Self Serve,Desktop,small_team,3,4,8,1,36
+U0285,Self Serve,Desktop,small_team,1,6,8,1,28
+U0286,Guided Setup,Desktop,department,8,8,2,1,43
+U0287,Guided Setup,Desktop,solo,0,1,29,0,29
+U0288,Self Serve,Mobile,solo,0,4,16,1,37
+U0289,Self Serve,Desktop,solo,0,2,7,1,44
+U0290,Guided Setup,Desktop,small_team,3,6,6,1,32
+U0291,Guided Setup,Desktop,solo,0,3,10,1,41
+U0292,Guided Setup,Mobile,small_team,2,4,12,1,42
+U0293,Self Serve,Desktop,solo,0,3,1,1,35
+U0294,Self Serve,Desktop,solo,0,2,34,0,34
+U0295,Self Serve,Mobile,small_team,3,3,11,1,33
+U0296,Concierge,Desktop,solo,0,8,3,1,39
+U0297,Self Serve,Desktop,solo,1,4,2,1,37
+U0298,Self Serve,Desktop,department,7,7,3,1,42
+U0299,Concierge,Desktop,small_team,2,3,4,1,36
+U0300,Self Serve,Desktop,solo,0,2,8,1,36
+U0301,Guided Setup,Mobile,solo,0,5,11,1,29
+U0302,Guided Setup,Desktop,small_team,5,7,1,1,33
+U0303,Self Serve,Desktop,solo,1,3,4,1,44
+U0304,Concierge,Mobile,small_team,3,9,3,1,31
+U0305,Self Serve,Desktop,solo,0,3,24,1,29
+U0306,Concierge,Mobile,small_team,3,3,3,1,35
+U0307,Guided Setup,Mobile,department,7,9,2,1,43
+U0308,Self Serve,Desktop,small_team,3,2,2,1,42
+U0309,Guided Setup,Mobile,small_team,1,7,19,1,41
+U0310,Guided Setup,Mobile,small_team,3,6,13,1,40
+U0311,Guided Setup,Mobile,solo,0,2,30,0,30
+U0312,Guided Setup,Desktop,solo,0,5,11,1,45
+U0313,Concierge,Desktop,solo,1,6,1,1,28
+U0314,Guided Setup,Desktop,department,9,11,4,1,31
+U0315,Self Serve,Desktop,solo,1,2,12,1,43
+U0316,Guided Setup,Desktop,small_team,2,7,32,1,35
+U0317,Guided Setup,Desktop,small_team,2,6,3,1,44
+U0318,Self Serve,Desktop,solo,1,2,33,0,33
+U0319,Concierge,Desktop,department,8,10,5,1,43
+U0320,Self Serve,Desktop,solo,1,0,32,0,32
+U0321,Self Serve,Desktop,solo,1,5,31,1,41
+U0322,Guided Setup,Desktop,department,1,5,4,1,42
+U0323,Self Serve,Desktop,solo,0,2,32,1,32
+U0324,Guided Setup,Desktop,department,7,9,9,1,41
+U0325,Self Serve,Desktop,solo,0,2,28,0,28
+U0326,Concierge,Mobile,small_team,1,4,20,1,45
+U0327,Concierge,Mobile,department,5,10,4,1,45
+U0328,Self Serve,Mobile,small_team,4,7,9,1,42
+U0329,Guided Setup,Desktop,department,5,8,11,1,29
+U0330,Guided Setup,Mobile,small_team,2,3,28,0,28
+U0331,Self Serve,Mobile,small_team,1,4,7,1,33
+U0332,Self Serve,Desktop,solo,0,2,25,1,39
+U0333,Guided Setup,Mobile,small_team,4,8,6,1,30
+U0334,Self Serve,Mobile,solo,0,1,33,0,33
+U0335,Self Serve,Desktop,solo,0,4,16,1,43
+U0336,Self Serve,Desktop,small_team,0,2,9,1,36
+U0337,Guided Setup,Desktop,small_team,1,6,9,1,34
+U0338,Self Serve,Desktop,department,4,9,7,1,36
+U0339,Self Serve,Mobile,small_team,0,3,10,1,36
+U0340,Concierge,Desktop,small_team,2,5,2,1,43
+U0341,Guided Setup,Desktop,small_team,1,7,9,1,45
+U0342,Guided Setup,Mobile,solo,1,3,14,1,34
+U0343,Self Serve,Desktop,solo,1,3,12,1,36
+U0344,Concierge,Mobile,solo,0,5,20,1,34
+U0345,Concierge,Desktop,solo,0,6,3,1,43
+U0346,Self Serve,Mobile,small_team,4,3,17,1,44
+U0347,Guided Setup,Mobile,department,7,7,1,1,41
+U0348,Guided Setup,Mobile,solo,1,3,34,0,34
+U0349,Self Serve,Mobile,solo,1,2,9,1,35
+U0350,Self Serve,Desktop,small_team,3,2,33,1,34
+U0351,Self Serve,Desktop,solo,0,2,36,0,36
+U0352,Guided Setup,Mobile,solo,1,7,7,1,39
+U0353,Concierge,Desktop,small_team,1,7,7,1,39
+U0354,Self Serve,Desktop,solo,1,3,7,1,29
+U0355,Guided Setup,Desktop,small_team,1,4,4,1,40
+U0356,Concierge,Desktop,solo,0,10,1,1,34
+U0357,Self Serve,Desktop,solo,0,8,42,0,42
+U0358,Guided Setup,Desktop,small_team,1,5,5,1,28
+U0359,Self Serve,Mobile,solo,2,4,28,1,29
+U0360,Concierge,Mobile,solo,0,4,6,1,39
+U0361,Self Serve,Desktop,solo,1,1,28,0,28
+U0362,Concierge,Desktop,solo,0,8,2,1,31
+U0363,Self Serve,Desktop,small_team,1,4,5,1,45
+U0364,Guided Setup,Desktop,solo,0,9,4,1,28
+U0365,Self Serve,Desktop,small_team,3,8,4,1,42
+U0366,Guided Setup,Desktop,solo,1,9,7,1,30
+U0367,Guided Setup,Mobile,department,3,5,2,1,40
+U0368,Guided Setup,Desktop,small_team,3,10,3,1,28
+U0369,Self Serve,Mobile,small_team,4,3,21,1,42
+U0370,Self Serve,Desktop,small_team,2,8,6,1,33
+U0371,Guided Setup,Desktop,department,8,11,3,1,36
+U0372,Guided Setup,Mobile,small_team,0,7,3,1,36
+U0373,Self Serve,Desktop,small_team,2,4,19,1,43
+U0374,Guided Setup,Desktop,solo,0,3,9,1,28
+U0375,Guided Setup,Desktop,small_team,1,15,6,1,42
+U0376,Concierge,Desktop,small_team,2,11,3,1,35
+U0377,Concierge,Mobile,solo,0,10,6,1,40
+U0378,Self Serve,Desktop,department,1,2,35,0,35
+U0379,Self Serve,Mobile,small_team,3,2,2,1,37
+U0380,Guided Setup,Desktop,small_team,7,12,7,1,44
+U0381,Self Serve,Desktop,small_team,3,4,2,1,31
+U0382,Guided Setup,Mobile,solo,0,6,2,1,42
+U0383,Guided Setup,Desktop,small_team,4,9,4,1,40
+U0384,Self Serve,Desktop,small_team,1,6,4,1,32
+U0385,Self Serve,Desktop,small_team,1,3,19,1,45
+U0386,Guided Setup,Desktop,small_team,0,4,37,1,44
+U0387,Guided Setup,Desktop,solo,0,7,21,1,41
+U0388,Guided Setup,Desktop,small_team,4,12,3,1,29
+U0389,Guided Setup,Desktop,solo,0,5,18,1,32
+U0390,Self Serve,Mobile,solo,0,0,22,1,32
+U0391,Concierge,Desktop,solo,0,8,10,1,44
+U0392,Concierge,Desktop,small_team,1,9,4,1,32
+U0393,Guided Setup,Desktop,small_team,3,5,14,1,44
+U0394,Guided Setup,Desktop,solo,0,6,1,1,43
+U0395,Guided Setup,Desktop,solo,0,3,1,1,29
+U0396,Guided Setup,Mobile,solo,2,6,11,1,40
+U0397,Guided Setup,Desktop,small_team,1,5,2,1,29
+U0398,Self Serve,Desktop,solo,0,0,1,1,39
+U0399,Guided Setup,Mobile,small_team,1,3,16,1,45
+U0400,Self Serve,Mobile,small_team,2,4,13,1,45
+U0401,Self Serve,Desktop,small_team,3,3,15,1,34
+U0402,Guided Setup,Desktop,small_team,3,11,5,1,37
+U0403,Guided Setup,Desktop,solo,0,8,8,1,41
+U0404,Guided Setup,Mobile,solo,0,7,31,1,31
+U0405,Concierge,Mobile,small_team,2,7,18,1,29
+U0406,Guided Setup,Mobile,solo,0,7,7,1,45
+U0407,Guided Setup,Desktop,department,8,9,1,1,34
+U0408,Self Serve,Desktop,solo,0,1,4,1,30
+U0409,Self Serve,Mobile,solo,0,1,43,0,43
+U0410,Guided Setup,Desktop,solo,0,4,7,1,40
+U0411,Self Serve,Desktop,solo,0,5,15,1,45
+U0412,Concierge,Mobile,department,6,9,5,1,37
+U0413,Guided Setup,Desktop,solo,0,7,5,1,28
+U0414,Guided Setup,Mobile,small_team,5,8,1,1,39
+U0415,Guided Setup,Mobile,department,7,10,3,1,43
+U0416,Self Serve,Desktop,small_team,4,3,2,1,36
+U0417,Self Serve,Desktop,solo,0,0,10,1,41
+U0418,Concierge,Desktop,small_team,3,11,2,1,45
+U0419,Self Serve,Desktop,small_team,3,4,8,1,35
+U0420,Guided Setup,Mobile,solo,2,7,3,1,38
+U0421,Guided Setup,Mobile,solo,0,1,7,1,32
+U0422,Self Serve,Desktop,small_team,2,3,3,1,32
+U0423,Guided Setup,Desktop,solo,0,5,4,1,44
+U0424,Self Serve,Mobile,small_team,2,5,28,1,38
+U0425,Guided Setup,Mobile,department,8,10,4,1,37
+U0426,Guided Setup,Desktop,solo,0,9,2,1,37
+U0427,Self Serve,Desktop,small_team,1,10,4,1,41
+U0428,Concierge,Desktop,solo,0,7,6,1,34
+U0429,Self Serve,Desktop,solo,1,1,11,1,38
+U0430,Concierge,Desktop,small_team,1,8,1,1,39
+U0431,Guided Setup,Desktop,small_team,1,9,17,1,45
+U0432,Guided Setup,Desktop,department,4,12,2,1,41
+U0433,Self Serve,Mobile,solo,1,3,9,1,32
+U0434,Self Serve,Mobile,small_team,6,8,23,1,28
+U0435,Self Serve,Desktop,small_team,1,5,6,1,38
+U0436,Guided Setup,Desktop,solo,0,5,9,1,37
+U0437,Concierge,Desktop,small_team,1,4,18,1,37
+U0438,Guided Setup,Desktop,solo,0,2,20,1,41
+U0439,Concierge,Mobile,small_team,0,2,24,1,28
+U0440,Self Serve,Desktop,small_team,2,1,14,1,42
+U0441,Self Serve,Desktop,department,6,9,5,1,37
+U0442,Self Serve,Desktop,small_team,4,6,2,1,28
+U0443,Guided Setup,Desktop,small_team,3,7,1,1,42
+U0444,Guided Setup,Mobile,small_team,1,3,3,1,35
+U0445,Self Serve,Desktop,solo,0,4,7,1,37
+U0446,Self Serve,Mobile,small_team,1,1,14,1,35
+U0447,Concierge,Desktop,small_team,1,6,1,1,37
+U0448,Self Serve,Desktop,small_team,0,2,2,1,32
+U0449,Concierge,Mobile,small_team,1,4,9,1,44
+U0450,Self Serve,Mobile,small_team,3,2,10,1,31
+U0451,Guided Setup,Mobile,small_team,3,9,4,1,29
+U0452,Self Serve,Desktop,solo,0,3,28,0,28
+U0453,Self Serve,Desktop,small_team,3,4,4,1,28
+U0454,Guided Setup,Desktop,department,9,10,1,1,44
+U0455,Guided Setup,Desktop,solo,1,3,15,1,39
+U0456,Guided Setup,Mobile,solo,0,5,5,1,32
+U0457,Concierge,Desktop,solo,0,7,4,1,42
+U0458,Self Serve,Desktop,small_team,0,3,20,1,35
+U0459,Self Serve,Desktop,solo,0,5,43,0,43
+U0460,Self Serve,Mobile,small_team,3,3,15,1,41
+U0461,Guided Setup,Mobile,solo,0,5,36,0,36
+U0462,Guided Setup,Mobile,solo,0,11,8,1,45
+U0463,Guided Setup,Desktop,solo,1,6,17,1,37
+U0464,Self Serve,Mobile,small_team,2,1,24,1,39
+U0465,Self Serve,Desktop,small_team,1,6,5,1,44
+U0466,Self Serve,Desktop,solo,0,3,23,1,37
+U0467,Guided Setup,Mobile,solo,0,4,2,1,36
+U0468,Guided Setup,Desktop,solo,0,9,5,1,37
+U0469,Concierge,Desktop,solo,0,5,2,1,40
+U0470,Concierge,Desktop,department,4,4,16,1,43
+U0471,Concierge,Desktop,small_team,0,11,2,1,37
+U0472,Concierge,Desktop,solo,0,8,9,1,43
+U0473,Guided Setup,Desktop,solo,1,6,8,1,28
+U0474,Guided Setup,Desktop,small_team,2,9,24,1,32
+U0475,Guided Setup,Desktop,department,3,6,18,1,42
+U0476,Concierge,Desktop,solo,1,7,1,1,44
+U0477,Concierge,Mobile,small_team,5,11,1,1,33
+U0478,Self Serve,Desktop,department,7,6,21,1,33
+U0479,Self Serve,Mobile,small_team,3,2,21,1,34
+U0480,Self Serve,Mobile,solo,0,5,6,1,31
+U0481,Guided Setup,Desktop,small_team,2,6,3,1,35
+U0482,Self Serve,Desktop,small_team,1,4,29,0,29
+U0483,Guided Setup,Desktop,solo,1,6,19,1,41
+U0484,Self Serve,Mobile,solo,1,2,28,0,28
+U0485,Self Serve,Desktop,small_team,4,4,5,1,32
+U0486,Guided Setup,Desktop,solo,1,6,24,1,29
+U0487,Guided Setup,Mobile,small_team,2,4,2,1,36
+U0488,Guided Setup,Desktop,small_team,3,1,6,1,34
+U0489,Self Serve,Desktop,small_team,4,4,5,1,30
+U0490,Guided Setup,Desktop,solo,0,9,2,1,32
+U0491,Guided Setup,Desktop,department,4,5,2,1,34
+U0492,Self Serve,Desktop,solo,1,1,12,1,41
+U0493,Guided Setup,Mobile,solo,0,5,1,1,32
+U0494,Self Serve,Mobile,solo,1,7,3,1,35
+U0495,Concierge,Desktop,solo,0,8,2,1,45
+U0496,Guided Setup,Desktop,small_team,5,11,7,1,42
+U0497,Concierge,Desktop,solo,0,3,4,1,36
+U0498,Guided Setup,Desktop,department,5,5,18,1,42
+U0499,Guided Setup,Desktop,solo,0,8,2,1,28
+U0500,Self Serve,Desktop,small_team,5,4,31,1,37
+U0501,Self Serve,Desktop,small_team,2,2,7,1,39
+U0502,Self Serve,Desktop,solo,0,2,21,1,44
+U0503,Self Serve,Desktop,solo,0,2,15,1,39
+U0504,Guided Setup,Mobile,small_team,4,8,2,1,30
+U0505,Self Serve,Desktop,small_team,3,3,11,1,28
+U0506,Self Serve,Desktop,small_team,1,5,2,1,36
+U0507,Guided Setup,Mobile,solo,0,4,4,1,43
+U0508,Self Serve,Desktop,department,6,5,4,1,38
+U0509,Self Serve,Desktop,small_team,0,4,2,1,42
+U0510,Guided Setup,Desktop,small_team,0,3,4,1,41
+U0511,Concierge,Desktop,small_team,4,12,3,1,31
+U0512,Self Serve,Desktop,small_team,7,5,11,1,37
+U0513,Guided Setup,Desktop,solo,0,8,8,1,30
+U0514,Guided Setup,Desktop,solo,0,2,10,1,45
+U0515,Guided Setup,Desktop,solo,0,3,2,1,34
+U0516,Self Serve,Desktop,small_team,1,3,18,1,41
+U0517,Guided Setup,Mobile,small_team,2,6,6,1,45
+U0518,Self Serve,Desktop,solo,0,2,1,1,30
+U0519,Self Serve,Mobile,solo,1,3,3,1,39
+U0520,Concierge,Desktop,small_team,2,9,1,1,42
+U0521,Self Serve,Mobile,solo,0,2,36,0,36
+U0522,Concierge,Desktop,small_team,6,8,5,1,34
+U0523,Self Serve,Desktop,solo,0,6,2,1,33
+U0524,Guided Setup,Mobile,solo,0,6,1,1,45
+U0525,Guided Setup,Desktop,solo,0,6,7,1,35
+U0526,Guided Setup,Desktop,small_team,0,5,18,1,28
+U0527,Self Serve,Desktop,solo,0,3,8,1,39
+U0528,Guided Setup,Desktop,small_team,2,2,1,1,38
+U0529,Guided Setup,Desktop,solo,0,9,1,1,44
+U0530,Self Serve,Desktop,department,6,6,6,1,44
+U0531,Guided Setup,Mobile,solo,0,3,11,1,41
+U0532,Self Serve,Desktop,solo,0,4,7,1,40
+U0533,Self Serve,Desktop,solo,1,6,1,1,42
+U0534,Guided Setup,Desktop,small_team,2,8,4,1,34
+U0535,Guided Setup,Mobile,small_team,4,6,1,1,28
+U0536,Self Serve,Desktop,small_team,2,5,18,1,32
+U0537,Self Serve,Desktop,small_team,3,7,7,1,31
+U0538,Guided Setup,Mobile,solo,0,11,4,1,42
+U0539,Concierge,Desktop,small_team,6,12,1,1,42
+U0540,Guided Setup,Desktop,solo,0,6,29,1,41
+U0541,Self Serve,Desktop,solo,0,2,21,1,30
+U0542,Guided Setup,Desktop,department,6,6,8,1,30
+U0543,Self Serve,Desktop,small_team,3,3,40,1,41
+U0544,Guided Setup,Desktop,small_team,0,5,19,1,38
+U0545,Self Serve,Desktop,solo,2,5,3,1,40
+U0546,Concierge,Desktop,solo,0,11,6,1,32
+U0547,Guided Setup,Desktop,small_team,0,6,20,1,35
+U0548,Concierge,Mobile,department,4,11,1,1,32
+U0549,Guided Setup,Desktop,small_team,2,4,7,1,45
+U0550,Guided Setup,Desktop,solo,1,6,8,1,36
+U0551,Guided Setup,Desktop,solo,0,8,9,1,39
+U0552,Self Serve,Desktop,solo,0,1,1,1,36
+U0553,Guided Setup,Desktop,small_team,3,5,6,1,38
+U0554,Concierge,Mobile,solo,0,6,3,1,39
+U0555,Self Serve,Desktop,small_team,2,5,2,1,36
+U0556,Self Serve,Mobile,solo,0,2,42,0,42
+U0557,Self Serve,Desktop,department,10,8,10,1,40
+U0558,Self Serve,Desktop,small_team,0,4,22,1,31
+U0559,Self Serve,Mobile,small_team,0,4,23,1,39
+U0560,Self Serve,Mobile,solo,1,1,14,1,34
+U0561,Guided Setup,Desktop,department,7,7,14,1,37
+U0562,Self Serve,Mobile,small_team,0,4,29,1,32
+U0563,Guided Setup,Mobile,solo,0,5,29,1,35
+U0564,Guided Setup,Desktop,small_team,2,5,16,1,32
+U0565,Guided Setup,Mobile,solo,0,5,6,1,43
+U0566,Self Serve,Mobile,small_team,4,4,32,0,32
+U0567,Self Serve,Desktop,small_team,5,5,7,1,43
+U0568,Guided Setup,Mobile,small_team,6,10,2,1,41
+U0569,Guided Setup,Desktop,solo,0,8,13,1,30
+U0570,Self Serve,Desktop,solo,0,5,15,1,31
+U0571,Guided Setup,Desktop,small_team,1,5,3,1,28
+U0572,Guided Setup,Desktop,department,5,6,3,1,29
+U0573,Guided Setup,Desktop,small_team,3,7,7,1,33
+U0574,Self Serve,Mobile,solo,1,5,14,1,42
+U0575,Self Serve,Mobile,solo,0,3,7,1,42
+U0576,Guided Setup,Desktop,small_team,3,1,2,1,37
+U0577,Guided Setup,Desktop,solo,0,4,16,1,32
+U0578,Self Serve,Desktop,small_team,3,2,2,1,30
+U0579,Self Serve,Mobile,small_team,4,4,2,1,36
+U0580,Guided Setup,Desktop,small_team,0,5,1,1,42
+U0581,Guided Setup,Desktop,solo,0,3,2,1,44
+U0582,Self Serve,Desktop,solo,0,2,20,1,36
+U0583,Self Serve,Mobile,small_team,1,2,7,1,41
+U0584,Self Serve,Desktop,solo,0,2,33,0,33
+U0585,Self Serve,Desktop,solo,0,1,25,1,32
+U0586,Concierge,Desktop,small_team,2,5,2,1,28
+U0587,Concierge,Desktop,small_team,4,11,3,1,35
+U0588,Self Serve,Mobile,solo,1,1,9,1,39
+U0589,Self Serve,Desktop,solo,0,3,15,1,28
+U0590,Guided Setup,Mobile,small_team,3,4,14,1,29
+U0591,Concierge,Mobile,solo,0,12,3,1,35
+U0592,Self Serve,Mobile,solo,0,3,45,0,45
+U0593,Self Serve,Desktop,department,6,5,1,1,33
+U0594,Self Serve,Desktop,solo,0,3,11,1,38
+U0595,Self Serve,Mobile,department,7,3,13,1,35
+U0596,Guided Setup,Mobile,small_team,2,8,10,1,33
+U0597,Guided Setup,Desktop,solo,0,6,2,1,39
+U0598,Self Serve,Desktop,small_team,2,4,41,1,41
+U0599,Guided Setup,Mobile,solo,0,2,3,1,36
+U0600,Self Serve,Desktop,small_team,2,2,25,1,28
+U0601,Guided Setup,Desktop,solo,0,8,1,1,42
+U0602,Guided Setup,Desktop,small_team,3,6,9,1,36
+U0603,Guided Setup,Desktop,solo,0,7,9,1,40
+U0604,Guided Setup,Mobile,solo,0,9,7,1,36
+U0605,Concierge,Desktop,solo,0,11,8,1,41
+U0606,Guided Setup,Desktop,solo,2,6,2,1,38
+U0607,Self Serve,Desktop,solo,1,5,6,1,43
+U0608,Guided Setup,Desktop,small_team,3,11,7,1,41
+U0609,Guided Setup,Desktop,solo,0,6,1,1,34
+U0610,Guided Setup,Desktop,solo,1,6,30,1,44
+U0611,Guided Setup,Mobile,solo,0,3,28,0,28
+U0612,Self Serve,Desktop,solo,2,3,3,1,31
+U0613,Guided Setup,Desktop,small_team,1,6,5,1,38
+U0614,Self Serve,Mobile,solo,0,2,26,1,38
+U0615,Self Serve,Desktop,small_team,2,6,8,1,31
+U0616,Guided Setup,Mobile,solo,0,2,1,1,37
+U0617,Self Serve,Desktop,solo,0,0,39,0,39
+U0618,Guided Setup,Desktop,small_team,5,9,1,1,28
+U0619,Guided Setup,Desktop,small_team,4,6,1,1,39
+U0620,Self Serve,Mobile,small_team,2,0,11,1,29
+U0621,Self Serve,Desktop,small_team,2,7,23,1,40
+U0622,Guided Setup,Desktop,department,9,8,2,1,35
+U0623,Self Serve,Desktop,small_team,2,3,12,1,35
+U0624,Guided Setup,Mobile,small_team,4,5,1,1,33
+U0625,Self Serve,Desktop,solo,1,4,16,1,41
+U0626,Guided Setup,Desktop,solo,0,7,13,1,42
+U0627,Self Serve,Desktop,department,3,5,9,1,32
+U0628,Self Serve,Mobile,solo,0,3,26,1,38
+U0629,Guided Setup,Mobile,solo,1,9,10,1,43
+U0630,Self Serve,Desktop,solo,0,3,11,1,42
+U0631,Self Serve,Desktop,solo,0,3,22,1,30
+U0632,Self Serve,Desktop,solo,0,3,25,1,40
+U0633,Guided Setup,Desktop,small_team,2,6,9,1,40
+U0634,Concierge,Desktop,department,6,9,4,1,34
+U0635,Self Serve,Desktop,solo,0,2,5,1,44
+U0636,Guided Setup,Mobile,department,6,10,5,1,35
+U0637,Guided Setup,Mobile,solo,2,7,14,1,40
+U0638,Guided Setup,Mobile,solo,0,7,14,1,28
+U0639,Guided Setup,Desktop,solo,0,11,2,1,36
+U0640,Guided Setup,Mobile,small_team,3,7,11,1,44
+U0641,Guided Setup,Desktop,small_team,4,5,4,1,34
+U0642,Self Serve,Mobile,solo,0,1,43,0,43
+U0643,Guided Setup,Mobile,small_team,3,11,1,1,28
+U0644,Self Serve,Mobile,solo,0,3,26,1,37
+U0645,Self Serve,Desktop,small_team,0,6,8,1,30
+U0646,Guided Setup,Desktop,solo,0,7,10,1,30
+U0647,Guided Setup,Mobile,small_team,6,7,6,1,30
+U0648,Guided Setup,Desktop,solo,1,11,1,1,32
+U0649,Guided Setup,Desktop,solo,1,5,32,1,38
+U0650,Self Serve,Desktop,solo,0,1,6,1,39
+U0651,Self Serve,Desktop,small_team,1,6,2,1,37
+U0652,Guided Setup,Desktop,solo,0,8,5,1,36
+U0653,Self Serve,Mobile,small_team,2,6,28,1,34
+U0654,Self Serve,Mobile,department,6,5,8,1,29
+U0655,Guided Setup,Mobile,small_team,1,3,32,0,32
+U0656,Self Serve,Mobile,solo,0,1,45,0,45
+U0657,Concierge,Mobile,small_team,2,9,5,1,39
+U0658,Self Serve,Desktop,department,5,5,14,1,29
+U0659,Guided Setup,Desktop,solo,1,6,1,1,34
+U0660,Guided Setup,Desktop,solo,0,4,2,1,37
+U0661,Self Serve,Mobile,department,6,1,8,1,34
+U0662,Guided Setup,Desktop,small_team,1,4,15,1,36
+U0663,Concierge,Desktop,department,5,7,1,1,31
+U0664,Concierge,Desktop,small_team,2,12,8,1,43
+U0665,Self Serve,Desktop,department,6,5,8,1,42
+U0666,Guided Setup,Mobile,department,5,6,3,1,29
+U0667,Self Serve,Desktop,solo,1,4,13,1,37
+U0668,Self Serve,Desktop,small_team,1,4,36,0,36
+U0669,Self Serve,Desktop,small_team,1,4,2,1,34
+U0670,Self Serve,Mobile,solo,0,4,35,0,35
+U0671,Concierge,Desktop,department,11,14,2,1,29
+U0672,Guided Setup,Desktop,department,8,5,4,1,34
+U0673,Self Serve,Mobile,small_team,2,2,20,1,37
+U0674,Self Serve,Mobile,department,5,3,28,0,28
+U0675,Guided Setup,Desktop,department,3,6,3,1,37
+U0676,Guided Setup,Desktop,small_team,1,7,1,1,45
+U0677,Self Serve,Mobile,small_team,2,3,36,1,39
+U0678,Self Serve,Desktop,solo,0,5,8,1,34
+U0679,Self Serve,Desktop,solo,0,6,1,1,32
+U0680,Guided Setup,Mobile,small_team,2,5,18,1,37
+U0681,Concierge,Desktop,solo,0,8,24,1,31
+U0682,Self Serve,Desktop,small_team,3,2,4,1,36
+U0683,Self Serve,Desktop,solo,1,2,11,1,32
+U0684,Guided Setup,Desktop,solo,0,8,15,1,42
+U0685,Guided Setup,Desktop,solo,0,2,23,1,39
+U0686,Concierge,Mobile,solo,1,5,16,1,43
+U0687,Self Serve,Desktop,solo,2,2,18,1,33
+U0688,Concierge,Desktop,solo,0,3,9,1,38
+U0689,Concierge,Desktop,solo,0,3,3,1,33
+U0690,Concierge,Mobile,department,9,9,1,1,40
+U0691,Guided Setup,Desktop,solo,1,6,11,1,31
+U0692,Guided Setup,Mobile,department,6,10,8,1,38
+U0693,Guided Setup,Desktop,small_team,0,4,27,1,29
+U0694,Self Serve,Mobile,department,8,5,5,1,44
+U0695,Guided Setup,Desktop,department,9,10,4,1,40
+U0696,Guided Setup,Desktop,department,9,8,2,1,39
+U0697,Concierge,Desktop,small_team,2,7,3,1,41
+U0698,Guided Setup,Desktop,solo,1,6,7,1,43
+U0699,Self Serve,Mobile,solo,0,4,22,1,34
+U0700,Guided Setup,Mobile,solo,0,6,7,1,35
+U0701,Concierge,Desktop,small_team,2,11,2,1,30
+U0702,Guided Setup,Desktop,department,3,3,10,1,31
+U0703,Self Serve,Mobile,solo,0,4,40,0,40
+U0704,Self Serve,Mobile,small_team,0,1,3,1,41
+U0705,Concierge,Mobile,solo,1,6,4,1,30
+U0706,Guided Setup,Mobile,department,6,10,11,1,35
+U0707,Self Serve,Desktop,small_team,0,1,4,1,33
+U0708,Self Serve,Desktop,solo,0,2,9,1,36
+U0709,Self Serve,Mobile,solo,2,4,20,1,30
+U0710,Self Serve,Desktop,small_team,1,2,27,1,35
+U0711,Guided Setup,Mobile,solo,1,1,12,1,33
+U0712,Guided Setup,Desktop,solo,0,5,18,1,32
+U0713,Guided Setup,Mobile,solo,0,5,18,1,38
+U0714,Self Serve,Mobile,small_team,6,7,19,1,45
+U0715,Guided Setup,Desktop,small_team,7,5,11,1,34
+U0716,Self Serve,Desktop,small_team,3,6,10,1,43
+U0717,Concierge,Desktop,solo,0,8,5,1,44
+U0718,Self Serve,Desktop,small_team,4,5,16,1,45
+U0719,Guided Setup,Desktop,solo,2,4,22,1,35
+U0720,Guided Setup,Desktop,small_team,2,9,2,1,45
+U0721,Guided Setup,Desktop,solo,0,2,1,1,33
+U0722,Concierge,Desktop,small_team,1,7,3,1,43
+U0723,Guided Setup,Desktop,solo,0,4,2,1,29
+U0724,Self Serve,Mobile,small_team,0,2,19,1,35
+U0725,Guided Setup,Desktop,solo,0,6,17,1,33
+U0726,Guided Setup,Desktop,department,3,9,11,1,35
+U0727,Guided Setup,Mobile,small_team,2,3,29,1,37
+U0728,Self Serve,Desktop,small_team,1,1,9,1,34
+U0729,Guided Setup,Desktop,solo,0,7,4,1,44
+U0730,Concierge,Mobile,small_team,3,6,3,1,30
+U0731,Guided Setup,Desktop,solo,1,4,24,1,31
+U0732,Concierge,Desktop,department,13,12,3,1,40
+U0733,Guided Setup,Desktop,solo,0,6,14,1,44
+U0734,Guided Setup,Desktop,small_team,2,8,3,1,36
+U0735,Self Serve,Desktop,solo,0,3,16,1,43
+U0736,Guided Setup,Desktop,small_team,2,6,9,1,31
+U0737,Guided Setup,Desktop,small_team,3,9,2,1,30
+U0738,Self Serve,Mobile,small_team,3,3,15,1,37
+U0739,Guided Setup,Desktop,solo,0,6,12,1,36
+U0740,Self Serve,Mobile,small_team,1,5,13,1,42
+U0741,Self Serve,Desktop,solo,0,2,36,0,36
+U0742,Self Serve,Desktop,small_team,4,6,13,1,34
+U0743,Guided Setup,Desktop,small_team,4,4,4,1,28
+U0744,Self Serve,Desktop,small_team,2,2,1,1,37
+U0745,Guided Setup,Desktop,small_team,1,8,14,1,44
+U0746,Guided Setup,Mobile,small_team,4,9,1,1,39
+U0747,Self Serve,Desktop,small_team,5,6,5,1,29
+U0748,Self Serve,Mobile,department,5,4,26,1,45
+U0749,Self Serve,Desktop,solo,0,5,9,1,35
+U0750,Guided Setup,Mobile,solo,1,6,2,1,35
+U0751,Guided Setup,Desktop,solo,2,6,18,1,36
+U0752,Guided Setup,Desktop,solo,1,5,5,1,34
+U0753,Concierge,Desktop,department,7,6,2,1,34
+U0754,Guided Setup,Mobile,department,3,7,30,0,30
+U0755,Concierge,Desktop,department,4,4,4,1,32
+U0756,Self Serve,Desktop,solo,1,6,14,1,41
+U0757,Guided Setup,Desktop,solo,2,5,3,1,44
+U0758,Self Serve,Desktop,solo,0,2,2,1,43
+U0759,Concierge,Desktop,small_team,6,7,2,1,44
+U0760,Self Serve,Desktop,small_team,0,1,19,1,37
+U0761,Guided Setup,Desktop,solo,1,5,23,1,31
+U0762,Guided Setup,Desktop,solo,0,5,6,1,40
+U0763,Guided Setup,Mobile,small_team,1,6,2,1,39
+U0764,Self Serve,Desktop,small_team,1,1,15,1,34
+U0765,Guided Setup,Desktop,solo,0,8,12,1,35
+U0766,Guided Setup,Mobile,department,7,9,3,1,45
+U0767,Guided Setup,Desktop,small_team,2,4,3,1,28
+U0768,Self Serve,Mobile,solo,0,4,29,0,29
+U0769,Self Serve,Mobile,solo,0,1,22,1,37
+U0770,Guided Setup,Desktop,solo,0,9,7,1,29
+U0771,Self Serve,Mobile,small_team,0,3,16,1,39
+U0772,Self Serve,Desktop,small_team,2,4,4,1,44
+U0773,Self Serve,Desktop,solo,1,3,25,1,44
+U0774,Guided Setup,Desktop,small_team,1,6,7,1,41
+U0775,Self Serve,Mobile,solo,1,2,3,1,37
+U0776,Self Serve,Desktop,small_team,2,7,8,1,38
+U0777,Self Serve,Desktop,solo,0,4,27,1,31
+U0778,Self Serve,Desktop,solo,1,6,3,1,41
+U0779,Guided Setup,Desktop,small_team,3,11,14,1,38
+U0780,Guided Setup,Desktop,small_team,3,10,9,1,41
+U0781,Self Serve,Desktop,solo,0,5,34,1,43
+U0782,Self Serve,Desktop,solo,1,3,25,1,42
+U0783,Guided Setup,Desktop,department,6,10,2,1,37
+U0784,Self Serve,Desktop,small_team,4,6,26,1,32
+U0785,Guided Setup,Desktop,small_team,1,10,2,1,38
+U0786,Self Serve,Mobile,small_team,1,5,20,1,41
+U0787,Concierge,Mobile,solo,2,8,1,1,32
+U0788,Guided Setup,Desktop,solo,1,8,4,1,36
+U0789,Self Serve,Mobile,solo,0,0,31,0,31
+U0790,Guided Setup,Desktop,solo,0,4,1,1,44
+U0791,Concierge,Desktop,solo,0,7,6,1,30
+U0792,Self Serve,Mobile,solo,0,3,7,1,36
+U0793,Concierge,Mobile,small_team,4,8,2,1,43
+U0794,Guided Setup,Desktop,solo,0,7,10,1,33
+U0795,Self Serve,Desktop,small_team,1,3,4,1,29
+U0796,Self Serve,Desktop,small_team,3,5,25,1,45
+U0797,Self Serve,Desktop,department,5,5,15,1,44
+U0798,Concierge,Desktop,department,8,13,1,1,31
+U0799,Guided Setup,Desktop,solo,0,5,1,1,29
+U0800,Guided Setup,Mobile,solo,0,5,4,1,42
+U0801,Self Serve,Desktop,solo,0,3,5,1,32
+U0802,Self Serve,Mobile,small_team,2,5,30,0,30
+U0803,Self Serve,Mobile,solo,0,1,7,1,38
+U0804,Self Serve,Mobile,solo,0,7,19,1,43
+U0805,Self Serve,Desktop,small_team,3,3,13,1,38
+U0806,Guided Setup,Desktop,solo,0,6,3,1,40
+U0807,Self Serve,Desktop,solo,0,2,5,1,30
+U0808,Guided Setup,Mobile,solo,0,6,15,1,37
+U0809,Self Serve,Desktop,small_team,2,5,6,1,35
+U0810,Self Serve,Desktop,small_team,1,4,38,0,38
+U0811,Concierge,Desktop,department,5,9,3,1,41
+U0812,Self Serve,Desktop,small_team,4,4,3,1,37
+U0813,Self Serve,Mobile,solo,0,2,32,0,32
+U0814,Concierge,Desktop,small_team,6,11,3,1,43
+U0815,Guided Setup,Desktop,small_team,4,8,2,1,30
+U0816,Self Serve,Desktop,small_team,2,2,21,1,30
+U0817,Self Serve,Mobile,small_team,4,3,28,0,28
+U0818,Self Serve,Desktop,small_team,3,4,33,1,37
+U0819,Self Serve,Mobile,small_team,1,4,1,1,31
+U0820,Self Serve,Mobile,solo,0,1,4,1,44
+U0821,Guided Setup,Desktop,department,8,7,6,1,41
+U0822,Self Serve,Desktop,solo,1,3,37,1,40
+U0823,Guided Setup,Desktop,small_team,2,7,31,1,42
+U0824,Self Serve,Mobile,small_team,2,1,12,1,30
+U0825,Self Serve,Mobile,solo,0,1,10,1,36
+U0826,Concierge,Mobile,solo,0,4,37,1,37
+U0827,Concierge,Desktop,solo,1,6,6,1,35
+U0828,Concierge,Desktop,solo,0,7,15,1,38
+U0829,Guided Setup,Mobile,solo,0,6,1,1,40
+U0830,Guided Setup,Desktop,solo,0,6,1,1,38
+U0831,Self Serve,Desktop,solo,0,5,7,1,37
+U0832,Concierge,Mobile,small_team,1,12,5,1,41
+U0833,Self Serve,Desktop,small_team,4,3,20,1,29
+U0834,Concierge,Desktop,small_team,1,11,7,1,36
+U0835,Guided Setup,Desktop,small_team,2,5,2,1,31
+U0836,Self Serve,Desktop,small_team,1,3,15,1,38
+U0837,Self Serve,Desktop,solo,0,10,18,1,38
+U0838,Self Serve,Mobile,small_team,2,2,12,1,36
+U0839,Self Serve,Desktop,small_team,3,6,18,1,29
+U0840,Self Serve,Desktop,solo,0,3,8,1,31
+U0841,Concierge,Desktop,solo,2,8,5,1,34
+U0842,Self Serve,Desktop,small_team,0,2,28,1,29
+U0843,Concierge,Desktop,small_team,0,9,7,1,32
+U0844,Self Serve,Mobile,small_team,0,3,6,1,44
+U0845,Guided Setup,Desktop,small_team,0,8,4,1,42
+U0846,Guided Setup,Mobile,solo,0,4,20,1,34
+U0847,Guided Setup,Mobile,solo,0,5,16,1,42
+U0848,Guided Setup,Desktop,solo,0,7,8,1,31
+U0849,Guided Setup,Desktop,solo,0,4,1,1,37
+U0850,Concierge,Desktop,solo,0,9,3,1,40
+U0851,Concierge,Desktop,small_team,2,9,2,1,35
+U0852,Concierge,Desktop,small_team,2,6,6,1,42
+U0853,Concierge,Desktop,solo,0,5,19,1,45
+U0854,Self Serve,Desktop,small_team,5,5,14,1,39
+U0855,Guided Setup,Mobile,solo,0,6,29,1,39
+U0856,Concierge,Desktop,solo,1,3,3,1,28
+U0857,Self Serve,Desktop,solo,0,4,4,1,35
+U0858,Self Serve,Mobile,solo,0,1,14,1,43
+U0859,Self Serve,Desktop,small_team,0,2,17,1,32
+U0860,Guided Setup,Desktop,solo,0,2,7,1,38
+U0861,Self Serve,Desktop,department,8,3,25,1,37
+U0862,Guided Setup,Desktop,small_team,2,8,1,1,32
+U0863,Concierge,Desktop,solo,0,7,17,1,35
+U0864,Self Serve,Desktop,department,7,4,23,1,40
+U0865,Guided Setup,Desktop,solo,0,5,7,1,29
+U0866,Guided Setup,Mobile,small_team,0,6,13,1,40
+U0867,Guided Setup,Desktop,solo,0,3,12,1,44
+U0868,Self Serve,Mobile,solo,0,3,6,1,38
+U0869,Self Serve,Desktop,solo,1,7,13,1,40
+U0870,Self Serve,Desktop,solo,0,4,15,1,38
+U0871,Guided Setup,Desktop,solo,0,4,4,1,36
+U0872,Self Serve,Mobile,department,3,5,8,1,38
+U0873,Self Serve,Desktop,solo,0,1,35,0,35
+U0874,Self Serve,Desktop,small_team,2,2,2,1,37
+U0875,Self Serve,Desktop,small_team,2,3,9,1,30
+U0876,Guided Setup,Mobile,solo,1,4,16,1,34
+U0877,Self Serve,Mobile,small_team,3,3,33,1,43
+U0878,Self Serve,Desktop,department,6,9,7,1,31
+U0879,Self Serve,Desktop,department,5,4,4,1,37
+U0880,Guided Setup,Desktop,solo,1,4,24,1,43
+U0881,Guided Setup,Desktop,solo,1,4,13,1,40
+U0882,Guided Setup,Desktop,small_team,2,7,1,1,43
+U0883,Self Serve,Mobile,small_team,2,4,14,1,42
+U0884,Self Serve,Desktop,small_team,2,0,21,1,38
+U0885,Self Serve,Desktop,small_team,2,3,10,1,33
+U0886,Self Serve,Desktop,small_team,0,3,3,1,32
+U0887,Self Serve,Desktop,solo,0,1,2,1,31
+U0888,Self Serve,Mobile,solo,1,3,7,1,30
+U0889,Guided Setup,Desktop,small_team,0,3,7,1,41
+U0890,Self Serve,Desktop,solo,1,3,3,1,37
+U0891,Self Serve,Desktop,solo,3,4,5,1,29
+U0892,Self Serve,Desktop,small_team,4,2,17,1,32
+U0893,Self Serve,Mobile,department,5,5,7,1,38
+U0894,Self Serve,Desktop,small_team,0,1,7,1,44
+U0895,Concierge,Desktop,solo,1,7,11,1,29
+U0896,Guided Setup,Mobile,department,6,13,1,1,38
+U0897,Guided Setup,Desktop,small_team,0,3,28,1,41
+U0898,Self Serve,Desktop,small_team,5,12,4,1,37
+U0899,Self Serve,Mobile,solo,1,1,36,1,42
+U0900,Guided Setup,Mobile,solo,1,5,25,1,38

@@ -33,3 +33,6 @@ btyd_analysis/*.json
 btyd_analysis/*.log
 btyd_analysis/BTYD_Library_Comparison_Report.md
 btyd_analysis/pymc_api_notes.txt
+
+# survival-analysis-intro regenerated outputs
+survival-analysis-intro/outputs/

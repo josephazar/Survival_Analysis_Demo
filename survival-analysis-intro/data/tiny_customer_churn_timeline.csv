@@ -1,0 +1,13 @@
+customer_id,pilot_group,days_since_trial_start,churn_observed,plain_english_status
+C001,Team A,4,1,Churned after onboarding friction
+C002,Team A,6,1,Churned after missing setup
+C003,Team B,6,0,Still active when data was extracted
+C004,Team B,9,1,Churned after first invoice
+C005,Team A,11,0,Still active when data was extracted
+C006,Team C,12,1,Churned after support delay
+C007,Team C,15,0,Still active when data was extracted
+C008,Team B,18,1,Churned after low usage
+C009,Team A,21,0,Still active when data was extracted
+C010,Team C,24,1,Churned after renewal reminder
+C011,Team B,28,0,Still active when data was extracted
+C012,Team C,30,0,Still active when data was extracted

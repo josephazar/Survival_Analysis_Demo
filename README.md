@@ -55,6 +55,10 @@ wins. Neither result generalises without checking your data first.
 ├── btyd_analysis/                    # BTYD library comparison (Lifetimes vs PyMC-Marketing)
 │   ├── 01_data_prep.py … 04_comparison.py
 │
+├── survival-analysis-intro/          # 5-notebook intro course on synthetic data
+│   ├── notebooks/01…05               # censoring → KM/log-rank → Cox → diagnostics → landmark project
+│   └── data/                         # small synthetic CSVs
+│
 ├── dunnhumby/                        # Dunnhumby pipeline (see dunnhumby/README.md)
 │   ├── scripts/                      # 9 stages, landmark-based
 │   ├── tests/test_leakage_and_smoke.py   # 20 invariant assertions
@@ -172,9 +176,11 @@ study end. Evaluation uses IPCW C-index, time-dependent AUC, and integrated
 Brier score on a locked test fold; every choice (hyperparameters, early
 stopping, thresholds, winning model) is made on a validation fold. The full
 list of traps this protects against — and how each is enforced in code or
-tests — is in [`LESSONS_LEARNED.md`](LESSONS_LEARNED.md); if survival
+tests — is in [`LESSONS_LEARNED.md`](LESSONS_LEARNED.md). If survival
 analysis is new to you, start with
-[`SURVIVAL_ANALYSIS_GUIDE.md`](SURVIVAL_ANALYSIS_GUIDE.md).
+[`SURVIVAL_ANALYSIS_GUIDE.md`](SURVIVAL_ANALYSIS_GUIDE.md) (glossary) or
+work through the hands-on notebook course in
+[`survival-analysis-intro/`](survival-analysis-intro/).
 
 ## Output artefacts
 
