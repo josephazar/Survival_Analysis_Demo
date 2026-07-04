@@ -53,6 +53,7 @@ wins. Neither result generalises without checking your data first.
 ├── stage1-conversion-model.ipynb     # 90-day conversion model, temporal split
 │
 ├── btyd_analysis/                    # BTYD library comparison (Lifetimes vs PyMC-Marketing)
+│   ├── BTYD_Intro_End_to_End_Project.ipynb   # BTYD walkthrough on simulated data
 │   ├── 01_data_prep.py … 04_comparison.py
 │
 ├── survival-analysis-intro/          # 5-notebook intro course on synthetic data
@@ -145,7 +146,10 @@ Four-script head-to-head BG/NBD + Gamma-Gamma comparison on identical RFM
 inputs. Near-identical point estimates (CLV correlation r = 0.999, top-50
 overlap 96%). Lifetimes fits in ~0.05 s; PyMC's 4-chain × 1000-draw MCMC
 (R-hat = 1.00, ESS > 900) takes ~15 s and buys you full posterior
-uncertainty.
+uncertainty. New to BTYD? `BTYD_Intro_End_to_End_Project.ipynb` in the same
+folder walks the whole frequency/recency/T → BG/NBD → Gamma-Gamma → CLV →
+action-table arc on a small simulated retailer, including
+calibration/holdout backtesting and the classic mistakes to avoid.
 
 ## The Dunnhumby pipeline
 
