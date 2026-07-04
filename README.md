@@ -149,7 +149,11 @@ overlap 96%). Lifetimes fits in ~0.05 s; PyMC's 4-chain × 1000-draw MCMC
 uncertainty. New to BTYD? `BTYD_Intro_End_to_End_Project.ipynb` in the same
 folder walks the whole frequency/recency/T → BG/NBD → Gamma-Gamma → CLV →
 action-table arc on a small simulated retailer, including
-calibration/holdout backtesting and the classic mistakes to avoid.
+calibration/holdout backtesting and the classic mistakes to avoid. The
+folder's own [`LESSONS_LEARNED.md`](btyd_analysis/LESSONS_LEARNED.md)
+catalogues the BTYD/Bayesian/Markov-LTV traps (degenerate fit regimes,
+survivor-biased training, confounded action quadrants, prior scaling) and
+how each notebook defends against them.
 
 ## The Dunnhumby pipeline
 

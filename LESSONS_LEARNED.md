@@ -1,5 +1,9 @@
 # Field guide — the traps in customer survival analysis
 
+> Companion volume: [`btyd_analysis/LESSONS_LEARNED.md`](btyd_analysis/LESSONS_LEARNED.md)
+> covers the probabilistic-CLV side — BG/NBD + Gamma-Gamma degenerate
+> regimes, Bayesian workflow discipline, and Markov-chain LTV traps.
+
 The methodology traps that come with survival modeling on transactional
 data, and how this repo's pipelines defend against each. None of these are
 hypothetical: every item was battle-tested while building the Online Retail
