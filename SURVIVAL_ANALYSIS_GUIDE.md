@@ -14,7 +14,8 @@ A practical reference for understanding survival analysis concepts, metrics, and
 6. [Models Used in This Project](#6-models-used-in-this-project)
 7. [Evaluation Metrics](#7-evaluation-metrics)
 8. [How to Judge If a Model Is Trustworthy](#8-how-to-judge-if-a-model-is-trustworthy)
-9. [Glossary — Quick Reference](#9-glossary--quick-reference)
+9. [Plain-English Cheat Sheet for Notebook Review Terms](#9-plain-english-cheat-sheet-for-notebook-review-terms)
+10. [Glossary — Quick Reference](#10-glossary--quick-reference)
 
 ---
 
@@ -432,15 +433,52 @@ For customer churn survival analysis with real-world data:
 
 ---
 
-## 9. Glossary — Quick Reference
+## 9. Plain-English Cheat Sheet for Notebook Review Terms
 
-| Term | Definition |
+This section translates the exact phrases used in the intro notebooks and review notes. Read it as a "what does this mean, and what do I do with it?" guide.
+
+| Phrase | Plain English | How to use it | Watch out |
+|---|---|---|---|
+| **Numerical claim** | Any number written in markdown, a title, or a conclusion: "C-index = 0.72", "median = 8 days", "tier churn = 75%". | Every number in the story should be produced by a nearby code cell or artifact. If the notebook is rerun, the text should still be true. | Stale markdown is common after reruns. Treat hard-coded numbers as promises that need checking. |
+| **Notebook output** | The printed tables, plots, and metrics saved inside a Jupyter notebook after code execution. | Use outputs to make the notebook readable on GitHub without forcing the reader to rerun everything. | Outputs can be old. A publish pass should execute notebooks top-to-bottom and check for error outputs. |
+| **Markdown claim** | Explanatory text in a notebook, not code. | Use markdown to interpret results in business language: what changed, why it matters, and what decision follows. | Markdown can overclaim. If it says "the model is calibrated", there should be calibration evidence below it. |
+| **Spot-check** | A quick targeted verification that important numbers in the prose match the code outputs. | Use it after edits to catch obvious drift: p-values, C-index, medians, tier counts, and risk estimates. | Spot-checking is not a full test suite. It complements, but does not replace, executing notebooks and running tests. |
+| **KM shortcut example** | A teaching example that compares Kaplan-Meier against naive shortcuts like "drop censored rows" or "treat censored as non-events". | Use it to show why survival analysis is needed: censored customers still contain partial information. | Shortcuts often look reasonable but bias durations or event rates. |
+| **Kaplan-Meier (KM)** | A simple step-by-step estimate of "what fraction are still event-free over time?" | Use KM for baseline survival curves, segment comparisons, and censoring-aware observed rates by risk tier. | KM is descriptive. It does not control for covariates unless you split into groups manually. |
+| **Activation median / median survival time** | The time when the survival curve crosses 50%. For activation, it is the day when half the users have activated. | Use it as a simple business summary: "half of users activate by day 8." | If the curve never drops below 50%, the median is not observed. Do not invent it. |
+| **Log-rank test** | A statistical test asking whether two or more survival curves are different. | Use it after plotting KM curves by segment to check whether the gap is larger than random noise. | It is not an effect size and not causal. Pair it with medians, survival probabilities, or business impact. |
+| **p-value** | Under a "no real difference" assumption, the chance of seeing a result this extreme or more extreme. | Use it as a signal to look closer, especially in log-rank and PH diagnostics. | It is not "the probability the model is right." Tiny p-values can come from huge samples and trivial effects. |
+| **Cox model / Cox PH** | A survival model that estimates how features multiply the current event risk. | Use it when you need interpretable drivers and a survival curve per customer. | It assumes proportional hazards. Check that assumption before quoting hazard ratios too confidently. |
+| **C-index** | A ranking score: did the model assign higher risk to the customer who churned sooner? | Use it to judge whether risk ordering is useful for prioritization. Around 0.70-0.80 is solid for honest customer churn models. | It is not calibration. A model can rank well but give bad probabilities. A value above 0.90 is suspicious on inactivity-based churn unless carefully audited. |
+| **PH test / proportional hazards test** | A diagnostic for whether a Cox feature's effect stays roughly constant over time. | Use it before treating hazard ratios as stable business drivers. A small p-value means "inspect this feature." | It is a screen, not a verdict. Multiple features mean multiple tests, so one small p-value can happen by chance. |
+| **Leakage** | A feature accidentally knows the answer because it uses future information or encodes the target. | Audit every feature by asking: "Would I know this at prediction time?" If not, remove or rebuild it around a landmark. | Leakage can look like a genuine model improvement. Too-good C-index jumps are a major warning sign. |
+| **C-index jump from leakage** | The model score improves sharply after adding a forbidden future-looking feature. | Use deliberate leakage examples as teaching tests: they show what a suspicious metric looks like. | A small jump can still be dangerous. Mild leakage can ship because it looks plausible. |
+| **End-to-end project** | A complete modeling story: define cohort, split data, fit/tune model, evaluate, score customers, explain the decision. | Use it as the template for real work, not just a demo. The final output should be an action table or scorecard. | Do not optimize every step on the test set. Use train for fitting, validation for choices, test once for reporting. |
+| **Tier table / risk tiers** | A scorecard summary that groups customers into action buckets such as Monitor, Watchlist, Immediate Intervention. | Use tiers to turn survival predictions into operational decisions and capacity planning. | Freeze cutoffs on train. Do not recompute percentiles separately on each scoring batch or the meaning of a tier will drift. |
+| **Calibration table** | A table comparing predicted event risk with observed event rates at a horizon. | Use it to answer: "When the model says 30% risk, does about 30% happen?" | With censoring, use Kaplan-Meier or IPCW methods. Complete-case rates can be biased. |
+
+### Minimal Workflow for Using These Terms
+
+1. Start with **KM** to understand the raw time pattern and censoring.
+2. Use **median survival / activation** only if the curve actually crosses 50%.
+3. Use a **log-rank test** to compare raw segment curves, but report effect size too.
+4. Fit **Cox PH** when you want interpretable feature effects and survival curves.
+5. Check **PH tests** before quoting hazard ratios as stable drivers.
+6. Evaluate ranking with **C-index**, then evaluate probability quality with calibration/Brier-style checks.
+7. Hunt for **leakage** whenever metrics jump too high or features reference the study end.
+8. Convert predictions into a **tier table** only after thresholds are chosen without touching test data.
+
+## 10. Glossary — Quick Reference
+
+| Term | Simple definition |
 |------|-----------|
 | **AFT (Accelerated Failure Time)** | A survival model that directly models log(survival time) as a linear function of features. Features "speed up" or "slow down" the time to event. |
+| **Activation Median** | In an activation notebook, the time by which 50% of users have activated. Same idea as median survival time, but the event is activation instead of churn. |
 | **Baseline Hazard h₀(t)** | The hazard function when all feature values are zero. In Cox models, individual hazards are this baseline multiplied by exp(βX). |
 | **BG/NBD Model** | Beta-Geometric/Negative Binomial Distribution — a probabilistic model for predicting customer purchase frequency and alive probability. |
 | **Brier Score** | A calibration metric measuring the squared difference between predicted survival probabilities and actual outcomes at a specific time. Lower is better. |
 | **BTYD (Buy Till You Die)** | A family of probabilistic models (BG/NBD, Pareto/NBD) for non-contractual customer behavior. Models when customers are "alive" vs "dead." |
+| **Calibration Table** | A table comparing predicted risk with observed risk at a fixed horizon. In survival analysis, observed risk should handle censoring, often with Kaplan-Meier. |
 | **C-index (Concordance Index)** | The proportion of customer pairs where the model correctly identifies who churns first. Measures ranking accuracy. Range: 0.5 (random) to 1.0 (perfect). |
 | **Censoring** | When the true survival time is unknown because the study ended or the customer was lost to follow-up. The customer was observed to survive *at least* this long. |
 | **Churn Window** | The number of inactive days after which a customer is declared churned. In this project: 45 days. |
@@ -457,17 +495,25 @@ For customer churn survival analysis with real-world data:
 | **IBS (Integrated Brier Score)** | The Brier score averaged over all time points. A single number summarizing calibration quality. Lower is better; < 0.05 is excellent. |
 | **IPCW (Inverse Probability of Censoring Weighting)** | A correction technique that up-weights observations that are less likely to be observed (more likely censored), reducing bias in evaluation metrics. |
 | **Kaplan-Meier (KM) Estimator** | A non-parametric estimator of the survival function. Makes no distributional assumptions. Plotted as a step function. |
+| **KM Shortcut Example** | A teaching comparison showing why naive shortcuts, such as dropping censored rows, give biased answers compared with Kaplan-Meier. |
+| **Log-rank Test** | A test for whether two or more survival curves differ. It compares observed vs expected events over time. It is evidence of a difference, not a business effect size or causal proof. |
+| **Markdown Claim** | A number or interpretation written in notebook text. It should be backed by nearby code output and updated after reruns. |
 | **Median Survival Time** | The time at which S(t) = 0.5 — the point where half the population has experienced the event. |
+| **Notebook Output** | The saved printed tables, plots, and metrics from executed notebook cells. Outputs make notebooks readable on GitHub but must be refreshed before publishing. |
 | **One-Timer** | A customer with exactly one purchase who never returns. Handled separately via Stage 1 classification in this project. |
 | **Partial Likelihood** | The likelihood function used by Cox models. It considers only the *order* of events, not exact event times, and naturally accounts for censored observations. |
 | **PCA (Principal Component Analysis)** | Dimensionality reduction technique used in this project to reduce correlated behavioral features before clustering. |
+| **PH Test** | A proportional-hazards diagnostic. It checks whether a Cox feature's hazard ratio appears to change over time. A small p-value means inspect the feature. |
+| **p-value** | A measure of how surprising the data would be if the null hypothesis were true. It is not the probability that the model or hypothesis is true. |
 | **Proportional Hazards Assumption** | The assumption that hazard ratios are constant over time. If violated, time-varying coefficients or stratification may be needed. |
 | **Random Survival Forest (RSF)** | An ensemble of survival trees. Each tree splits data to maximize survival difference between groups. No proportional hazards assumption required. |
 | **RFM (Recency, Frequency, Monetary)** | A customer segmentation framework based on how recently, how often, and how much a customer has purchased. |
 | **Right Censoring** | The most common type of censoring: the event has not yet occurred by the end of the study. The true survival time is somewhere beyond the observed time. |
 | **Risk Score** | A model's predicted relative risk for a customer. Higher scores indicate higher churn risk. Used for ranking, not as a probability. |
 | **Risk Set** | At any time t, the set of all customers who have not yet experienced the event or been censored. This is the denominator in survival calculations. |
+| **Risk Tier / Tier Table** | An operational grouping of scored customers, such as Monitor or Immediate Intervention. Cutoffs should be chosen on train/validation data and then frozen for test or production scoring. |
 | **S(t) — Survival Function** | P(T > t) — the probability of surviving beyond time t. Starts at 1.0 and decreases over time. |
+| **Spot-check** | A targeted manual check that key markdown numbers match code outputs. Useful before publishing, but not a replacement for full notebook execution and tests. |
 | **Survival Curve** | A plot of S(t) over time. A steep initial drop indicates high early churn; a long flat tail indicates a loyal subgroup. |
 | **TD-AUC (Time-Dependent AUC)** | AUC computed at a specific time point, measuring how well the model separates those who experienced the event by that time from those who did not. |
 | **Temporal Split** | A train/test split based on time (train on earlier data, test on later data) rather than random splitting. Prevents temporal leakage. |
