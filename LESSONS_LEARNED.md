@@ -227,7 +227,7 @@ It is very easy for a "fixed" script to also quietly change the feature
 set, the split, or the preprocessing — and then the reported delta mixes
 the methodology fix with everything else. When we isolated a single
 early-stopping fix on an identical feature set and split, the honest delta
-turned out to be small and *negative* (0.6204 → 0.6097): removing a test
+turned out to be small and *negative* (0.6204 → 0.6162): removing a test
 peek usually costs you the points the peek was worth.
 
 When you publish a before/after:
