@@ -56,8 +56,8 @@ wins. Neither result generalises without checking your data first.
 │   ├── BTYD_Intro_End_to_End_Project.ipynb   # BTYD walkthrough on simulated data
 │   ├── 01_data_prep.py … 04_comparison.py
 │
-├── survival-analysis-intro/          # 5-notebook intro course on synthetic data
-│   ├── notebooks/01…05               # censoring → KM/log-rank → Cox → diagnostics → landmark project
+├── survival-analysis-intro/          # 6-notebook intro course on synthetic data
+│   ├── notebooks/01…06               # censoring → KM/log-rank → Cox → diagnostics → landmark → age-conditioned scoring
 │   └── data/                         # small synthetic CSVs
 │
 ├── dunnhumby/                        # Dunnhumby pipeline (see dunnhumby/README.md)

@@ -159,6 +159,34 @@ A big win of this formulation: the survival-function outputs `S(Δ)` are automat
 | H-0002 | DAY 705 | 0 | `711 − 500 = 211` | Still active at study end (censored) |
 | H-0003 | DAY 495 | 1 | `495 + 14 − 500 = 9` | Churned almost immediately after `t0` |
 
+### Age-conditioned scoring — when your model clock starts at signup
+
+Sometimes the model's time origin is still **signup** or **first purchase**,
+but the scorecard is for customers who are already alive today. In that case,
+reading `S(30)` from the curve does **not** mean "probability active 30 days
+from today." It means "probability active 30 days after signup."
+
+For a customer who is `a` days old today, the forward survival probability for
+the next `Δ` days is:
+
+```
+S_from_today(Δ | age=a, x) = S(a + Δ | x) / S(a | x)
+```
+
+And the forward churn risk is:
+
+```
+Risk_from_today(Δ | age=a, x) = 1 - S(a + Δ | x) / S(a | x)
+```
+
+The denominator is the important part: it conditions on what you already know,
+namely that the customer survived to today's scoring date. In `lifelines`, this
+can be implemented directly with `predict_survival_function(...,
+conditional_after=[age])`, or manually with the ratio above.
+
+A vertical "today" line on a signup-time survival curve is only a visualization.
+It becomes a true planning probability only after this age-conditioning step.
+
 ### What the Model Outputs
 
 Instead of a single number, survival models output a **survival function S(t)** — a curve that gives the probability of remaining active at any time `t`:
@@ -415,7 +443,7 @@ A trustworthy survival model should satisfy multiple criteria. No single metric 
 
 8. **Test set used for early stopping** — `xgb.fit(..., eval_set=[(X_test, y_test)], early_stopping_rounds=30)` quietly selects `num_rounds` based on test performance. Carve a validation slice from train instead.
 
-9. **Unconditional `S(Δ)` presented as forward risk** — `S(30)` from a model where time origin is "first purchase" is the probability of surviving the first 30 days of a customer's lifetime, not the probability of surviving the next 30 days from today. Use a landmark model so `S(Δ)` is automatically conditional on "alive at landmark".
+9. **Unconditional `S(Δ)` presented as forward risk** — `S(30)` from a model where time origin is "first purchase" is the probability of surviving the first 30 days of a customer's lifetime, not the probability of surviving the next 30 days from today. Use either a landmark model so `S(Δ)` is automatically conditional on "alive at landmark", or age-condition a signup-time model with `S(age + Δ) / S(age)`.
 
 10. **Scorecard columns with silent `NaN`** — If your contract says every customer gets an `S_30d`, then every customer needs an `S_30d`. Use a population KM baseline to fill in out-of-cohort customers, and track provenance.
 
@@ -473,6 +501,7 @@ This section translates the exact phrases used in the intro notebooks and review
 | Term | Simple definition |
 |------|-----------|
 | **AFT (Accelerated Failure Time)** | A survival model that directly models log(survival time) as a linear function of features. Features "speed up" or "slow down" the time to event. |
+| **Age-Conditioned Survival Scoring** | Scoring future survival for a customer who is already alive today. If the model clock starts at signup and the customer is age `a`, use `S(a + Δ) / S(a)`, not `S(Δ)`. |
 | **Activation Median** | In an activation notebook, the time by which 50% of users have activated. Same idea as median survival time, but the event is activation instead of churn. |
 | **Baseline Hazard h₀(t)** | The hazard function when all feature values are zero. In Cox models, individual hazards are this baseline multiplied by exp(βX). |
 | **BG/NBD Model** | Beta-Geometric/Negative Binomial Distribution — a probabilistic model for predicting customer purchase frequency and alive probability. |
@@ -483,6 +512,7 @@ This section translates the exact phrases used in the intro notebooks and review
 | **Censoring** | When the true survival time is unknown because the study ended or the customer was lost to follow-up. The customer was observed to survive *at least* this long. |
 | **Churn Window** | The number of inactive days after which a customer is declared churned. In this project: 45 days. |
 | **CLV (Customer Lifetime Value)** | The total predicted revenue a customer will generate over their relationship with the business. |
+| **Conditional Survival** | The probability of surviving an additional period given survival up to a previous time. Formula: `P(T > s + t | T > s) = S(s + t) / S(s)`. |
 | **Cox PH (Cox Proportional Hazards)** | A semi-parametric survival model that assumes features multiply the baseline hazard by constant factors (hazard ratios). |
 | **CoxNet** | Cox PH with elastic net regularization (L1 + L2 penalty) to handle correlated features and perform feature selection. |
 | **Duration** | Synonym for survival time — the time from entry (first purchase) to event (churn) or censoring. |
